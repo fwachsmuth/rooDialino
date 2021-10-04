@@ -2,15 +2,6 @@
  *  Expects pulses on Pin 17/27 of the Raspi running rooExtend, requiring rooxtend 2.3.x or later.
  *  
  *  Todo:
- *  √ Simulate Pulses using Rot Encoder 
- *  √ Listen to changes on two TBD pins via ISR
- *  √ Test if manual repetition is faster than built in repetion (it is: 4.5s for full Vol sweep)
- *  - Replace delay with some non-blocking logic – check if a certain amount of time has passed since the interrupt was last called, 
- *    and if enough time has passed, actually handle the interrupt. https://thewanderingengineer.com/2014/08/11/arduino-pin-change-interrupts/#comment-1592
- *  - Find our if repeats can be cancelled
- *  - Find out minimum delay between commands: delay must be greater than 5 ms (RECORD_GAP_MICROS), otherwise the receiver sees it as one long signal
- *  - Add On/Off Switch and State LEDs - https://gammon.com.au/interrupts
- *  - Add Code Learning Ability  
  *  - increase the IR power by using 2 or 3 IR diodes in series. One diode requires 1.1 to 1.5 volt so we can supply 3 @ 5V, 10-50 Ohm (test)
  *  - Test if we can live with 3.3V pulses (or need to go down to 2 LEDs)
  * 
