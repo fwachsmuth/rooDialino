@@ -65,14 +65,13 @@
 #define PIN3  3
 
 
-volatile boolean volDownFlag;
-volatile boolean volUpFlag;
+volatile int volSteps;
 
 void volDownISR() {
-  volDownFlag = true;
+  volSteps--;
 }
 void volUpISR() {
-  volUpFlag = true;
+  volSteps++;
 }
 
 void setup() {
@@ -81,17 +80,14 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PIN2), volDownISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN3), volUpISR, CHANGE);
   
-    Serial.begin(115200);
-#if defined(__AVR_ATmega32U4__) || defined(SERIAL_USB) || defined(SERIAL_PORT_USBVIRTUAL)  || defined(ARDUINO_attiny3217)
-    delay(4000); // To be able to connect Serial monitor after reset or power up and before first printout
-#endif
-    // Just to know which program is running on my Arduino
-    Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
+  Serial.begin(115200);
+  // Just to know which program is running on my Arduino
+  Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
 
-    IrSender.begin(IR_SEND_PIN, ENABLE_LED_FEEDBACK); // Specify send pin and enable feedback LED at default feedback LED pin
+  IrSender.begin(IR_SEND_PIN, ENABLE_LED_FEEDBACK); // Specify send pin and enable feedback LED at default feedback LED pin
 
-    Serial.print(F("Ready to send IR signals at pin "));
-    Serial.println(IR_SEND_PIN);
+  Serial.print(F("Ready to send IR signals at pin "));
+  Serial.println(IR_SEND_PIN);
 
 #if defined(USE_SOFT_SEND_PWM) && !defined(ESP32) // for esp32 we use PWM generation by hw_timer_t for each pin
     /*
@@ -109,33 +105,29 @@ void setup() {
 #endif
 }
 
-/*
- * Set up the data to be sent.
- * For most protocols, the data is build up with a constant 8 (or 16 byte) address
- * and a variable 8 bit command.
- * There are exceptions like Sony and Denon, which have 5 bit address.
- */
-uint16_t sAddress; // = 0x16;
-uint8_t sCommand; // = 0x11;
-uint8_t sRepeats; // = 0;
+uint16_t sAddress; 
+uint8_t sCommand; 
+uint8_t sRepeats; 
 
 void loop() {
-  if (volUpFlag) {
+  if (volSteps > 0) {
     sAddress = 0x16;
     sCommand = 0x10;
     sRepeats = 0;
     IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
-    volUpFlag = false;
-//    Serial.println("Up");
+//    Serial.print(volSteps);
+    volSteps--;
+//    Serial.println(" Up");
     delay(DELAY_AFTER_SEND); 
   }
-  if (volDownFlag) {
+  if (volSteps < 0) {
     sAddress = 0x16;
     sCommand = 0x11;
     sRepeats = 0;
     IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
-    volDownFlag = false;
-//    Serial.println("Down");
+//    Serial.print(volSteps);
+    volSteps++;
+//    Serial.println(" Down");
     delay(DELAY_AFTER_SEND); 
   }
 /*    if (digitalRead(PIN1) == LOW) {
