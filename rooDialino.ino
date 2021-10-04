@@ -59,7 +59,7 @@
 
 #include <IRremote.h>
 
-#define DELAY_AFTER_SEND 5  // shorter might make drity signal
+#define DELAY_AFTER_SEND 5  // shorter than 5 ms might make dirty signal
 
 #define PIN2  2
 #define PIN3  3
@@ -76,8 +76,8 @@ void volUpISR() {
 }
 
 void setup() {
-  pinMode(PIN1, INPUT);
-  pinMode(PIN2, INPUT);
+  pinMode(PIN2, INPUT_PULLUP);
+  pinMode(PIN3, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(PIN2), volDownISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN3), volUpISR, CHANGE);
   
@@ -126,6 +126,7 @@ void loop() {
     sRepeats = 0;
     IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
     volUpFlag = false;
+//    Serial.println("Up");
     delay(DELAY_AFTER_SEND); 
   }
   if (volDownFlag) {
@@ -134,6 +135,7 @@ void loop() {
     sRepeats = 0;
     IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
     volDownFlag = false;
+//    Serial.println("Down");
     delay(DELAY_AFTER_SEND); 
   }
 /*    if (digitalRead(PIN1) == LOW) {
