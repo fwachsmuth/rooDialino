@@ -3,7 +3,7 @@
  *  
  *  Todo:
  *  - increase the IR power by using 2 or 3 IR diodes in series. One diode requires 1.1 to 1.5 volt so we can supply 3 @ 5V, 10-50 Ohm (test)
- *  - Test if we can live with 3.3V pulses (or need to go down to 2 LEDs)
+ *  - Test if we can live with 3.3V pulses (or need to go down to 2 LEDs. Or need a Transistor or Schmitt Trigger.
  * 
  *  Notes:
  *  - The default software generated PWM has problems on AVR running with 8 MHz. The PWM frequency is around 30 instead of 38 kHz and RC6 is not reliable. 
