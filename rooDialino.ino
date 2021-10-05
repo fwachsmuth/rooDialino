@@ -42,30 +42,89 @@
  */
 #include <Arduino.h>
 #include "PinDefinitionsAndMore.h" 
-/*  The header defines macros for input and output pin etc.
- *  Default on a 328P is to Receive on Pin 2 and to send on Pin 3 — any should work though.
- *  See https://github.com/Arduino-IRremote/Arduino-IRremote for Pin implications.
- *  
- *  I'm overwirting these below to free up 2/3 for Interrupts.
- *  
- */
-#define IR_RECEIVE_PIN      7 
+
+#define IR_RECEIVE_PIN      7 //  Overwriting IR Pins to free up 2/3 for Interrupts
 #define IR_SEND_PIN         8
-
-
-//#define EXCLUDE_EXOTIC_PROTOCOLS // saves around 240 bytes program space if IrSender.write is used
-//#define SEND_PWM_BY_TIMER
-//#define USE_NO_SEND_PWM
 
 #include <IRremote.h>
 
 #define DELAY_AFTER_SEND 5  // shorter than 5 ms might make dirty signal
 
-#define PIN2  2
-#define PIN3  3
+#define PIN2         2
+#define PIN3         3
+#define LED_BLUE    10
+#define LED_RED     11
+#define LED_GREEN   12
+#define BUTTON_PIN   4
+
+// LED Modes
+#define OFF                40
+#define ON                 41
+#define FASTBLINK          42
+#define BLINK              43
+#define ONCE               44 
+#define TWICE              45
+#define THRICE             46
+
+// Button States
+#define BUTTON_IDLE        10
+#define BUTTON_DOWN        11
+#define BUTTON_DEBOUNCE1   12
+#define BUTTON_WAIT        13
+#define BUTTON_UP          14
+#define BUTTON_DEBOUNCE2   15
+#define BUTTON_IGNOREDOWN  16
 
 
-volatile int volSteps;
+
+
+volatile int volSteps;  // keeps track of how many pulses came in from the rooDial
+
+uint16_t sAddress; 
+uint8_t sCommand; 
+uint8_t sRepeats; 
+
+// ******* LED things **************************** 
+
+const byte ledPins[] = { 10, 11, 12};       // an array of pin numbers too which LEDs are attached
+const byte ledPinCount = 3;       
+byte ledMode[] = { BLINK, OFF, OFF};
+unsigned long fastblinkPrevMillis[] = { 0, 0, 0, 0 };        // will store last time LED was updated
+unsigned long blinkPrevMillis[] = { 0, 0, 0, 0 };        // will store last time LED was updated
+unsigned long currentMillis = 0;
+int ledState[] = { LOW, LOW, LOW, LOW };             // ledState used to set the LED
+
+const unsigned int ledSlowBlinkInterval = 200;
+const unsigned int ledFastBlinkInterval = 80;
+const unsigned int sampleBaseNoisePeriod = 3000;
+const unsigned int learnBaseNoiseInitialDelay = 3000;
+const unsigned int permanentNoiseMinLength = 5000;
+const unsigned int longPressLength = 1000;
+const unsigned int buttonDebounceInterval = 50;
+
+byte ledBurstPatternCell = 0;
+byte prevLedBurstPatternCell[] = { 0, 0, 0, 0 };
+
+
+// ******* Button things **************************** 
+
+unsigned long previousButtonMillis = 0;
+unsigned long buttonDownMillis = 0;
+unsigned long buttonUpMillis = 0;
+
+// Button handling variables
+int buttonPressLength;
+
+boolean noCodeYetReceived = true;
+
+// byte settingsButtonState = 0;
+byte myState;
+byte prevState;
+byte buttonState;
+byte prevButtonState;
+byte learnState;
+
+
 
 void volDownISR() {
   volSteps--;
@@ -77,6 +136,10 @@ void volUpISR() {
 void setup() {
   pinMode(PIN2, INPUT_PULLUP);
   pinMode(PIN3, INPUT_PULLUP);
+  pinMode(PIN3, INPUT_PULLUP);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  for (int thisLed = 0; thisLed < ledPinCount; thisLed++) pinMode(ledPins[thisLed], OUTPUT);
+  
   attachInterrupt(digitalPinToInterrupt(PIN2), volDownISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN3), volUpISR, CHANGE);
   
@@ -105,11 +168,20 @@ void setup() {
 #endif
 }
 
-uint16_t sAddress; 
-uint8_t sCommand; 
-uint8_t sRepeats; 
+
 
 void loop() {
+  currentMillis = millis();
+  updateLeds();
+  checkButton();
+  
+  // check button
+  if (digitalRead(BUTTON_PIN)) { // Button is not pressed
+    
+  } else {  // Button is pressed
+
+  }
+  
   if (volSteps > 0) {
     sAddress = 0x16;
     sCommand = 0x10;
@@ -130,41 +202,190 @@ void loop() {
 //    Serial.println(" Down");
     delay(DELAY_AFTER_SEND); 
   }
-/*    if (digitalRead(PIN1) == LOW) {
-      Serial.println("Vol +");
-      sAddress = 0x16;
-      sCommand = 0x10;
-      sRepeats = 0;
-    } else if (digitalRead(PIN2) == LOW) {
-      Serial.println("Vol -");
-      sAddress = 0x16;
-      sCommand = 0x11;
-      sRepeats = 0;
-    } else {
-      sAddress = 0x0;
-      sCommand = 0x0;   
-      sRepeats = 0;
-    }
-    
-    if (sAddress != 0 && sCommand != 0) {
+}
 
-      Serial.println();
-      Serial.print(F("address=0x"));
-      Serial.print(sAddress, HEX);
-      Serial.print(F(" command=0x"));
-      Serial.print(sCommand, HEX);
-      Serial.print(F(" repeats="));
-      Serial.println(sRepeats);
-      Serial.println();
-      Serial.println();
-      Serial.flush();
+// ****************************************************************************************************************
 
-      Serial.print(F("Send RC5: "));
-      Serial.flush();
-      IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
-//      sAddress = 0;
-//      sCommand = 0;
-      delay(DELAY_AFTER_SEND);
+
+void checkButton() {
+//  if (buttonState != prevButtonState) {
+//    Serial.print("Button: ");
+//    Serial.println(buttonState);
+//    prevButtonState = buttonState;
+//  }
+  switch(buttonState) {
+    case BUTTON_IDLE:
+      if (digitalRead(BUTTON_PIN) == LOW) {
+        buttonState = BUTTON_DOWN;
+      }
+      break;
+    case BUTTON_DOWN:
+      buttonDownMillis = currentMillis;
+      buttonState = BUTTON_DEBOUNCE1;
+      break;
+    case BUTTON_DEBOUNCE1:
+      if (currentMillis - buttonDownMillis >= buttonDebounceInterval) buttonState = BUTTON_WAIT;
+      break;
+    case BUTTON_WAIT:
+      if (digitalRead(BUTTON_PIN) == HIGH) {
+        buttonState = BUTTON_UP;
+      } else if (currentMillis - longPressLength >= buttonDownMillis) {
+        buttonLongPress();
+        buttonState = BUTTON_IGNOREDOWN;
+      }
+      break;
+    case BUTTON_IGNOREDOWN:
+      if (digitalRead(BUTTON_PIN) == HIGH) buttonState = BUTTON_DEBOUNCE2;
+      break;
+    case BUTTON_UP:
+      buttonUpMillis = currentMillis;
+      buttonPressLength = buttonUpMillis - buttonDownMillis;
+      buttonState = BUTTON_DEBOUNCE2;
+      if (buttonPressLength < longPressLength) {
+        buttonShortPress();
+      } else {
+        buttonLongPress();
+      }
+      break;
+    case BUTTON_DEBOUNCE2:
+      if (currentMillis - buttonUpMillis >= buttonDebounceInterval) buttonState = BUTTON_IDLE;
+      break;
+  }
+}
+
+void buttonShortPress() {
+  switch(myState) {
+    case PERMANENT_SILENCE:
+    case PERMANENT_SOUND:
+    case WAKEUP:
+    case FALLASLEEP:
+      setLedModes(ON, BLINK, OFF, OFF);
+      myState = SETTING_1;
+    break;
+    case SETTING_1:
+      setLedModes(ON, OFF, BLINK, OFF);
+      myState = SETTING_2;
+    break;
+    case SETTING_2:
+      setLedModes(ON, OFF, OFF, BLINK);
+      myState = SETTING_3;
+    break;
+    case SETTING_3:
+      setLedModes(OFF, OFF, OFF, OFF);
+      myState = PERMANENT_SILENCE;
+    break;
+    case TIMER_SHORT:
+      setLedModes(ON, OFF, TWICE, OFF);
+      myState = TIMER_MID;
+    break;
+    case TIMER_MID:
+      setLedModes(ON, OFF, THRICE, OFF);
+      myState = TIMER_LONG;
+    break;
+    case TIMER_LONG:
+      setLedModes(ON, OFF, ONCE, OFF);
+      myState = TIMER_SHORT;
+    break;
+    default:
+    break;
+  }
+}
+
+void buttonLongPress() {
+  switch(myState) {
+    case PERMANENT_SILENCE:
+    case PERMANENT_SOUND:
+    case WAKEUP:
+    case FALLASLEEP:
+    break;
+    case SETTING_1:
+      setLedModes(ON, FASTBLINK, OFF, OFF);
+      startLearnBaseNoiseMillis = currentMillis;
+      myState = LEARN_BASENOISE;
+    break;
+    case SETTING_2:
+      setLedModes(ON, OFF, ONCE, OFF);
+      myState = TIMER_SHORT;
+    break;
+    case SETTING_3:
+      setLedModes(ON, OFF, OFF, FASTBLINK);
+      noCodeYetReceived = true;
+      myState = LEARN_IR;
+    break;
+    case TIMER_SHORT:
+      setTimer(10);
+      myState = PERMANENT_SILENCE;
+    break;
+    case TIMER_MID:
+      setTimer(15 * 60);
+      myState = PERMANENT_SILENCE;
+    break;
+    case TIMER_LONG:
+      setTimer(60 * 60);
+      myState = PERMANENT_SILENCE;
+    break;
+    default:
+    break;
+  }
+}
+void updateLeds() {
+  for (byte thisLed = 0; thisLed < ledPinCount; thisLed++) {
+    switch(ledMode[thisLed]) {
+      case OFF:
+        digitalWrite(ledPins[thisLed], LOW); 
+      break;
+      case ON:
+        digitalWrite(ledPins[thisLed], HIGH); 
+      break;
+      case FASTBLINK:
+        if (currentMillis - fastblinkPrevMillis[thisLed] >= ledFastBlinkInterval) {
+          digitalWrite(ledPins[thisLed], ledState[thisLed] = !ledState[thisLed]); 
+          fastblinkPrevMillis[thisLed] = currentMillis;
+        }
+      break;
+      case BLINK:
+        if (currentMillis - blinkPrevMillis[thisLed] >= ledSlowBlinkInterval) {
+          digitalWrite(ledPins[thisLed], ledState[thisLed] = !ledState[thisLed]); 
+          blinkPrevMillis[thisLed] = currentMillis;
+        }
+      break;
+      case ONCE:
+        ledBurstPatternCell = (currentMillis / 50 % 20);
+        if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed]) {
+          prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
+          switch (ledBurstPatternCell) {
+            case 0: digitalWrite(ledPins[thisLed], HIGH); break;
+            default: digitalWrite(ledPins[thisLed], LOW); break;
+          }
+        }
+      break;
+      case TWICE:
+        ledBurstPatternCell = (currentMillis / 50 % 20);
+        if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed]) {
+          prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
+          switch (ledBurstPatternCell) {
+            case 0: case 4: digitalWrite(ledPins[thisLed], HIGH); break;
+            default: digitalWrite(ledPins[thisLed], LOW); break;
+          }
+        }
+      break;
+      case THRICE:
+        ledBurstPatternCell = (currentMillis / 50 % 20);
+        if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed]) {
+          prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
+          switch (ledBurstPatternCell) {
+            case 0: case 4: case 8: digitalWrite(ledPins[thisLed], HIGH); break;
+            default: digitalWrite(ledPins[thisLed], LOW); break;
+          }
+        }
+      break;
     }
-    */
+  }
+}
+
+void setLedModes(byte newSettingsLedMode, byte newRedLedMode, byte newYellowLedMode, byte newGreenLedMode) {
+  ledMode[0] = newSettingsLedMode;      
+  ledMode[1] = newRedLedMode;
+  ledMode[2] = newYellowLedMode;
+  ledMode[3] = newGreenLedMode;
 }
