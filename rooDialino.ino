@@ -264,29 +264,17 @@ void checkButton() {
 void buttonShortPress() {
   switch(myState) {
     case SETTING_1:
-      setLedModes(ON, OFF, BLINK, OFF);
+      setLedModes(ON, OFF, BLINK);
       myState = SETTING_2;
     break;
     case SETTING_2:
-      setLedModes(ON, OFF, OFF, BLINK);
+      setLedModes(ON, OFF, OFF);
       myState = SETTING_3;
     break;
     case SETTING_3:
-      setLedModes(OFF, OFF, OFF, OFF);
+      setLedModes(OFF, OFF, OFF);
 //      myState = PERMANENT_SILENCE;
     break;
-//    case TIMER_SHORT:
-//      setLedModes(ON, OFF, TWICE, OFF);
-//      myState = TIMER_MID;
-//    break;
-//    case TIMER_MID:
-//      setLedModes(ON, OFF, THRICE, OFF);
-//      myState = TIMER_LONG;
-//    break;
-//    case TIMER_LONG:
-//      setLedModes(ON, OFF, ONCE, OFF);
-//      myState = TIMER_SHORT;
-//    break;
     default:
     break;
   }
@@ -295,31 +283,18 @@ void buttonShortPress() {
 void buttonLongPress() {
   switch(myState) {
     case SETTING_1:
-      setLedModes(ON, FASTBLINK, OFF, OFF);
-//      startLearnBaseNoiseMillis = currentMillis;
+      setLedModes(ON, FASTBLINK, OFF);
 //      myState = LEARN_BASENOISE;
     break;
     case SETTING_2:
-      setLedModes(ON, OFF, ONCE, OFF);
+      setLedModes(ON, OFF, ONCE);
 //      myState = TIMER_SHORT;
     break;
     case SETTING_3:
-      setLedModes(ON, OFF, OFF, FASTBLINK);
+      setLedModes(ON, OFF, OFF);
       noCodeYetReceived = true;
       myState = LEARN_IR;
     break;
-//    case TIMER_SHORT:
-//      setTimer(10);
-//      myState = PERMANENT_SILENCE;
-//    break;
-//    case TIMER_MID:
-//      setTimer(15 * 60);
-//      myState = PERMANENT_SILENCE;
-//    break;
-//    case TIMER_LONG:
-//      setTimer(60 * 60);
-//      myState = PERMANENT_SILENCE;
-//    break;
     default:
     break;
   }
@@ -379,9 +354,8 @@ void updateLeds() {
   }
 }
 
-void setLedModes(byte newSettingsLedMode, byte newRedLedMode, byte newYellowLedMode, byte newGreenLedMode) {
+void setLedModes(byte newSettingsLedMode, byte newVolDownLedMode, byte newVolUpLedMode) {
   ledMode[0] = newSettingsLedMode;      
-  ledMode[1] = newRedLedMode;
-  ledMode[2] = newYellowLedMode;
-  ledMode[3] = newGreenLedMode;
+  ledMode[1] = newVolDownLedMode;
+  ledMode[2] = newVolUpLedMode;
 }
