@@ -52,9 +52,6 @@
 
 #define PIN2         2
 #define PIN3         3
-#define LED_BLUE    10
-#define LED_RED     11
-#define LED_GREEN   12
 #define BUTTON_PIN   4
 
 // LED Modes
@@ -75,7 +72,18 @@
 #define BUTTON_DEBOUNCE2   15
 #define BUTTON_IGNOREDOWN  16
 
+// Settings Modes
+#define SETTING_1          21
+#define SETTING_2          22
+#define SETTING_3          23
+#define SETTINGS_EXIT      24
 
+// States
+#define LEARN_BASENOISE    30
+#define LEARN_IR           31
+#define TIMER_SHORT        32
+#define TIMER_MID          33
+#define TIMER_LONG         34
 
 
 volatile int volSteps;  // keeps track of how many pulses came in from the rooDial
@@ -88,7 +96,7 @@ uint8_t sRepeats;
 
 const byte ledPins[] = { 10, 11, 12};       // an array of pin numbers too which LEDs are attached
 const byte ledPinCount = 3;       
-byte ledMode[] = { BLINK, OFF, OFF};
+byte ledMode[] = { BLINK, FASTBLINK, THRICE};
 unsigned long fastblinkPrevMillis[] = { 0, 0, 0, 0 };        // will store last time LED was updated
 unsigned long blinkPrevMillis[] = { 0, 0, 0, 0 };        // will store last time LED was updated
 unsigned long currentMillis = 0;
@@ -255,13 +263,6 @@ void checkButton() {
 
 void buttonShortPress() {
   switch(myState) {
-    case PERMANENT_SILENCE:
-    case PERMANENT_SOUND:
-    case WAKEUP:
-    case FALLASLEEP:
-      setLedModes(ON, BLINK, OFF, OFF);
-      myState = SETTING_1;
-    break;
     case SETTING_1:
       setLedModes(ON, OFF, BLINK, OFF);
       myState = SETTING_2;
@@ -272,20 +273,20 @@ void buttonShortPress() {
     break;
     case SETTING_3:
       setLedModes(OFF, OFF, OFF, OFF);
-      myState = PERMANENT_SILENCE;
+//      myState = PERMANENT_SILENCE;
     break;
-    case TIMER_SHORT:
-      setLedModes(ON, OFF, TWICE, OFF);
-      myState = TIMER_MID;
-    break;
-    case TIMER_MID:
-      setLedModes(ON, OFF, THRICE, OFF);
-      myState = TIMER_LONG;
-    break;
-    case TIMER_LONG:
-      setLedModes(ON, OFF, ONCE, OFF);
-      myState = TIMER_SHORT;
-    break;
+//    case TIMER_SHORT:
+//      setLedModes(ON, OFF, TWICE, OFF);
+//      myState = TIMER_MID;
+//    break;
+//    case TIMER_MID:
+//      setLedModes(ON, OFF, THRICE, OFF);
+//      myState = TIMER_LONG;
+//    break;
+//    case TIMER_LONG:
+//      setLedModes(ON, OFF, ONCE, OFF);
+//      myState = TIMER_SHORT;
+//    break;
     default:
     break;
   }
@@ -293,37 +294,32 @@ void buttonShortPress() {
 
 void buttonLongPress() {
   switch(myState) {
-    case PERMANENT_SILENCE:
-    case PERMANENT_SOUND:
-    case WAKEUP:
-    case FALLASLEEP:
-    break;
     case SETTING_1:
       setLedModes(ON, FASTBLINK, OFF, OFF);
-      startLearnBaseNoiseMillis = currentMillis;
-      myState = LEARN_BASENOISE;
+//      startLearnBaseNoiseMillis = currentMillis;
+//      myState = LEARN_BASENOISE;
     break;
     case SETTING_2:
       setLedModes(ON, OFF, ONCE, OFF);
-      myState = TIMER_SHORT;
+//      myState = TIMER_SHORT;
     break;
     case SETTING_3:
       setLedModes(ON, OFF, OFF, FASTBLINK);
       noCodeYetReceived = true;
       myState = LEARN_IR;
     break;
-    case TIMER_SHORT:
-      setTimer(10);
-      myState = PERMANENT_SILENCE;
-    break;
-    case TIMER_MID:
-      setTimer(15 * 60);
-      myState = PERMANENT_SILENCE;
-    break;
-    case TIMER_LONG:
-      setTimer(60 * 60);
-      myState = PERMANENT_SILENCE;
-    break;
+//    case TIMER_SHORT:
+//      setTimer(10);
+//      myState = PERMANENT_SILENCE;
+//    break;
+//    case TIMER_MID:
+//      setTimer(15 * 60);
+//      myState = PERMANENT_SILENCE;
+//    break;
+//    case TIMER_LONG:
+//      setTimer(60 * 60);
+//      myState = PERMANENT_SILENCE;
+//    break;
     default:
     break;
   }
