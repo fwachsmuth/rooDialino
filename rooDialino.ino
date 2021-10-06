@@ -63,7 +63,9 @@
 #define TWICE              45
 #define THRICE             46
 
-// Button States
+// Button States. This is (was) for software debounce. An RC pair does the job much easier
+// Short presses go from state 10 to 15
+// Long presses go from 10 to 13 and then eventually to 16 (until letting go, which leds to 15 + 10)
 #define BUTTON_IDLE        10
 #define BUTTON_DOWN        11
 #define BUTTON_DEBOUNCE1   12
@@ -73,18 +75,25 @@
 #define BUTTON_IGNOREDOWN  16
 
 // Settings Modes
+// Intended to step sequentially through various settings. This leaves the normal FSM.
 #define SETTING_1          21
 #define SETTING_2          22
 #define SETTING_3          23
 #define SETTINGS_EXIT      24
 
-// States
+// States (Siluino)
 #define LEARN_BASENOISE    30
 #define LEARN_IR           31
 #define TIMER_SHORT        32
 #define TIMER_MID          33
 #define TIMER_LONG         34
 
+// States (rooDialino)
+#define RELAY_SIGNAL_ON       50
+#define RELAY_SIGNAL_OFF      51
+#define LEARN_IR_RELAY_TOGGLE 52
+#define LEARN_IR_VOL_UP       53
+#define LEARN_IR_VOL_DOWN     54
 
 volatile int volSteps;  // keeps track of how many pulses came in from the rooDial
 
@@ -94,21 +103,20 @@ uint8_t sRepeats;
 
 // ******* LED things **************************** 
 
-const byte ledPins[] = { 10, 11, 12};       // an array of pin numbers too which LEDs are attached
+const byte ledPins[] = { 10, 11, 12 };       // an array of pin numbers too which LEDs are attached
 const byte ledPinCount = 3;       
-byte ledMode[] = { BLINK, FASTBLINK, THRICE};
-unsigned long fastblinkPrevMillis[] = { 0, 0, 0, 0 };        // will store last time LED was updated
-unsigned long blinkPrevMillis[] = { 0, 0, 0, 0 };        // will store last time LED was updated
+byte ledMode[] = { ON, OFF, OFF };           
+unsigned long fastblinkPrevMillis[] = { 0, 0, 0, 0 };   // will store last time LED was updated
+unsigned long blinkPrevMillis[] = { 0, 0, 0, 0 };       // will store last time LED was updated
 unsigned long currentMillis = 0;
-int ledState[] = { LOW, LOW, LOW, LOW };             // ledState used to set the LED
+int ledState[] = { LOW, LOW, LOW, LOW };                // ledState Array used to easily set the LED
 
 const unsigned int ledSlowBlinkInterval = 200;
 const unsigned int ledFastBlinkInterval = 80;
 const unsigned int sampleBaseNoisePeriod = 3000;
 const unsigned int learnBaseNoiseInitialDelay = 3000;
 const unsigned int permanentNoiseMinLength = 5000;
-const unsigned int longPressLength = 1000;
-const unsigned int buttonDebounceInterval = 50;
+
 
 byte ledBurstPatternCell = 0;
 byte prevLedBurstPatternCell[] = { 0, 0, 0, 0 };
@@ -116,24 +124,28 @@ byte prevLedBurstPatternCell[] = { 0, 0, 0, 0 };
 
 // ******* Button things **************************** 
 
+// Button & Debounce Timing 
+const unsigned int longPressLength = 3000;
+const unsigned int buttonDebounceInterval = 50;
+// Button Timers
 unsigned long previousButtonMillis = 0;
 unsigned long buttonDownMillis = 0;
 unsigned long buttonUpMillis = 0;
-
-// Button handling variables
 int buttonPressLength;
+
 
 boolean noCodeYetReceived = true;
 
+// current states
 // byte settingsButtonState = 0;
-byte myState;
+byte myState = RELAY_SIGNAL_ON;
 byte prevState;
-byte buttonState;
+byte buttonState = BUTTON_IDLE;
 byte prevButtonState;
 byte learnState;
 
 
-
+// ISRs
 void volDownISR() {
   volSteps--;
 }
@@ -142,6 +154,8 @@ void volUpISR() {
 }
 
 void setup() {
+//  buttonState = BUTTON_IDLE;
+  
   pinMode(PIN2, INPUT_PULLUP);
   pinMode(PIN3, INPUT_PULLUP);
   pinMode(PIN3, INPUT_PULLUP);
@@ -177,18 +191,17 @@ void setup() {
 }
 
 
-
 void loop() {
-  currentMillis = millis();
-  updateLeds();
-  checkButton();
-  
-  // check button
-  if (digitalRead(BUTTON_PIN)) { // Button is not pressed
-    
-  } else {  // Button is pressed
-
+// Debug Code below
+  if (myState != prevState) {
+    Serial.print("Mode: ");
+    Serial.println(myState);
+    prevState = myState;
   }
+
+  currentMillis = millis(); // needed for async (non-blocking) blinking
+  updateLeds();
+  checkButton(); // This debounces and calls buttonLongPress() and buttonShortPress().
   
   if (volSteps > 0) {
     sAddress = 0x16;
@@ -215,12 +228,15 @@ void loop() {
 // ****************************************************************************************************************
 
 
-void checkButton() {
+void checkButton() { // call in loop(). This calls buttonLongPress() and buttonShortPress().
+
+// Debug Output below. Comment out if not debugging
 //  if (buttonState != prevButtonState) {
 //    Serial.print("Button: ");
 //    Serial.println(buttonState);
 //    prevButtonState = buttonState;
 //  }
+
   switch(buttonState) {
     case BUTTON_IDLE:
       if (digitalRead(BUTTON_PIN) == LOW) {
@@ -263,18 +279,29 @@ void checkButton() {
 
 void buttonShortPress() {
   switch(myState) {
-    case SETTING_1:
-      setLedModes(ON, OFF, BLINK);
-      myState = SETTING_2;
-    break;
-    case SETTING_2:
-      setLedModes(ON, OFF, OFF);
-      myState = SETTING_3;
-    break;
-    case SETTING_3:
+    case RELAY_SIGNAL_ON:
       setLedModes(OFF, OFF, OFF);
-//      myState = PERMANENT_SILENCE;
+      myState = RELAY_SIGNAL_OFF;
     break;
+    case RELAY_SIGNAL_OFF:
+      setLedModes(ON, OFF, OFF);
+      myState = RELAY_SIGNAL_ON;
+    break;
+
+    // a short button pres skips the expected config step (to keep the prev. stored setting)
+    case LEARN_IR_RELAY_TOGGLE:
+      setLedModes(OFF, FASTBLINK, OFF);
+      myState = LEARN_IR_VOL_UP;
+    break;
+    case LEARN_IR_VOL_UP:
+      setLedModes(OFF, OFF, FASTBLINK);
+      myState = LEARN_IR_VOL_DOWN;
+    break;
+    case LEARN_IR_VOL_DOWN:
+      setLedModes(ON, OFF, OFF);
+      myState = RELAY_SIGNAL_ON;  // exits Settings Mode
+    break;
+
     default:
     break;
   }
@@ -282,24 +309,36 @@ void buttonShortPress() {
 
 void buttonLongPress() {
   switch(myState) {
-    case SETTING_1:
-      setLedModes(ON, FASTBLINK, OFF);
+    case RELAY_SIGNAL_ON:
+    case RELAY_SIGNAL_OFF:
+      setLedModes(FASTBLINK, OFF, OFF);
+      myState = LEARN_IR_RELAY_TOGGLE;
+    break;
+
+    // a long button press in Settings mode should just do nuthin (so far)
+    case LEARN_IR_RELAY_TOGGLE:
+    case LEARN_IR_VOL_UP:
+    case LEARN_IR_VOL_DOWN:
+    break;
+
+//    case SETTING_1:
+//      setLedModes(ON, FASTBLINK, OFF);
 //      myState = LEARN_BASENOISE;
-    break;
-    case SETTING_2:
-      setLedModes(ON, OFF, ONCE);
+//    break;
+//    case SETTING_2:
+//      setLedModes(ON, OFF, ONCE);
 //      myState = TIMER_SHORT;
-    break;
-    case SETTING_3:
-      setLedModes(ON, OFF, OFF);
-      noCodeYetReceived = true;
-      myState = LEARN_IR;
-    break;
+//    break;
+//    case SETTING_3:
+//      setLedModes(ON, OFF, OFF);
+//      noCodeYetReceived = true;
+//      myState = LEARN_IR;
+//    break;
     default:
     break;
   }
 }
-void updateLeds() {
+void updateLeds() { // call in loop() to update the connected LEDs as set in ledMode[]
   for (byte thisLed = 0; thisLed < ledPinCount; thisLed++) {
     switch(ledMode[thisLed]) {
       case OFF:
@@ -320,6 +359,9 @@ void updateLeds() {
           blinkPrevMillis[thisLed] = currentMillis;
         }
       break;
+      //
+      // The following three burst modes might become useful if we'll need to allow setting a multiplier. Otherwise
+      // they are Siluino legacy.
       case ONCE:
         ledBurstPatternCell = (currentMillis / 50 % 20);
         if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed]) {
@@ -350,11 +392,13 @@ void updateLeds() {
           }
         }
       break;
+      default:
+      break;
     }
   }
 }
 
-void setLedModes(byte newSettingsLedMode, byte newVolDownLedMode, byte newVolUpLedMode) {
+void setLedModes(byte newSettingsLedMode, byte newVolDownLedMode, byte newVolUpLedMode) { // writes individual set LED modes to a the LED mode array
   ledMode[0] = newSettingsLedMode;      
   ledMode[1] = newVolDownLedMode;
   ledMode[2] = newVolUpLedMode;
