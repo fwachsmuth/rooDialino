@@ -19,6 +19,9 @@
  *  https://www.mikrocontroller.net/articles/Statemachine
  *  http://stefanfrings.de/multithreading_arduino/index.html
  *  
+ *  FSM as UML:
+ *  https://lucid.app/publicSegments/view/7cfc8020-8e97-4eba-ac17-6506d2f960f2/image.png
+ *  
  ************************************************************************************
  * MIT License
  *
@@ -338,29 +341,35 @@ void checkButton() { // call in loop(). This calls buttonLongPress() and buttonS
 bool checkIRToggle() {
   // see if a relay state toggle was requested
   bool received = false;
-  if (IrReceiver.decode()) {
+  if (IrReceiver.decode()) { // should be the correct value, not any value!
+    /* Potentially Useful: 
+     *  .getProtocolString
+     *  .printIRResultAsCVariables
+     *  .sendRaw
+     *  if (IrReceiver.decodedIRData.protocol == UNKNOWN)
+     *  if (IrReceiver.decodedIRData.address == 0) {
+          if (IrReceiver.decodedIRData.command == 0x10) {
+            // do something
+          } else if (IrReceiver.decodedIRData.command == 0x11) {
+            // do something else
+          }
+        }
+        
+     */
+    
     // If it's been at least 1/4 second since the last
-    // IR received, toggle the relay
+    // IR received, toggle the relay state 
     if (millis() - lastIRreceivedMillis > 250) {
-      IrReceiver.printIRResultShort(&Serial);
+      IrReceiver.printIRResultShort(&Serial); // https://arduino-irremote.github.io/Arduino-IRremote/group__Receiving.html#gae24919a83cfbea5b2c53a851e1d3fed0
       received = true;
     }
     lastIRreceivedMillis = millis();
     IrReceiver.resume();
   }
   return received;
-  
-//  IrReceiver.stop();
-//  delay(8);
-//  IrReceiver.start(8000); // to compensate for 8 ms stop of receiver. This enables a correct gap measurement.
-//  IrReceiver.resume();
-//  if (IrReceiver.decodedIRData.address == 0) {
-//      if (IrReceiver.decodedIRData.command == 0x10) {
-//          // do something
-//      } else if (IrReceiver.decodedIRData.command == 0x11) {
-//          // do something else
-//      }
-//  }
+/* Just a note
+
+*/
 }
 
 bool learnIRCode() {
