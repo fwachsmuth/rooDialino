@@ -104,6 +104,21 @@
 
 volatile int volSteps;  // keeps track of how many pulses came in from the rooDial
 
+// ******* IR things **************************** 
+
+// Storage for recorded IR code 
+struct storedIRDataStruct {
+  IRData receivedIRData;
+  // extensions for sendRaw
+  uint8_t rawCode[RAW_BUFFER_LENGTH]; // The durations if raw
+  uint8_t rawCodeLength; // The length of the code
+} sStoredIRData;
+
+// TODO: Do I need these?
+void storeIRCode(IRData *aIRReceivedData);
+void sendIRCode(storedIRDataStruct *aIRDataToSend);
+
+// TOTO: Delete these
 uint16_t sAddress; 
 uint8_t sCommand; 
 uint8_t sRepeats; 
@@ -225,6 +240,7 @@ void loop() {
 
   switch(myState) {
     case RELAY_SIGNAL_ON:
+      // TODO: turn off recever in these ifs... IrReceiver.stop();
       if (volSteps > 0) {
         sAddress = 0x16;
         sCommand = 0x10;
@@ -246,6 +262,7 @@ void loop() {
     //    Serial.println(" Down");
         delay(DELAY_AFTER_SEND); 
       }
+      // TODO: turn rrecever back on after these ifs... IrReceiver.resume();
       break;
     case RELAY_SIGNAL_OFF: 
       // flash the LEDs to show we are seing pulses (aka rooDial is in reach but relaying is off)
@@ -341,7 +358,7 @@ void checkButton() { // call in loop(). This calls buttonLongPress() and buttonS
 bool checkIRToggle() {
   // see if a relay state toggle was requested
   bool received = false;
-  if (IrReceiver.decode()) { // should be the correct value, not any value!
+  if (IrReceiver.decode() ) { // should be the correct value, not any value!
     /* Potentially Useful: 
      *  .getProtocolString
      *  .printIRResultAsCVariables
@@ -360,7 +377,10 @@ bool checkIRToggle() {
     // If it's been at least 1/4 second since the last
     // IR received, toggle the relay state 
     if (millis() - lastIRreceivedMillis > 250) {
-      IrReceiver.printIRResultShort(&Serial); // https://arduino-irremote.github.io/Arduino-IRremote/group__Receiving.html#gae24919a83cfbea5b2c53a851e1d3fed0
+      Serial.println(IrReceiver.decodedIRData.protocol);
+      Serial.println(IrReceiver.decodedIRData.address);
+      Serial.println(IrReceiver.decodedIRData.command);
+//      IrReceiver.printIRResultShort(&Serial); // https://arduino-irremote.github.io/Arduino-IRremote/group__Receiving.html#gae24919a83cfbea5b2c53a851e1d3fed0
       received = true;
     }
     lastIRreceivedMillis = millis();
@@ -378,6 +398,61 @@ bool learnIRCode() {
 
 bool saveLearnedIRCodes() {
   // save just learned codes to EEPROM
+}
+
+// Most of this code is just logging
+void storeIRCode(IRData *aIRReceivedData) {  // Most of this code is just logging
+  if (aIRReceivedData->flags & IRDATA_FLAGS_IS_REPEAT) {
+    Serial.println(F("Ignore repeat"));
+    return;
+  }
+  if (aIRReceivedData->flags & IRDATA_FLAGS_IS_AUTO_REPEAT) {
+    Serial.println(F("Ignore autorepeat"));
+    return;
+  }
+  if (aIRReceivedData->flags & IRDATA_FLAGS_PARITY_FAILED) {
+    Serial.println(F("Ignore parity error"));
+    return;
+  }
+  /*
+   * Copy decoded data
+   */
+  sStoredIRData.receivedIRData = *aIRReceivedData;
+
+  if (sStoredIRData.receivedIRData.protocol == UNKNOWN) {
+    Serial.print(F("Received unknown code and store "));
+    Serial.print(IrReceiver.decodedIRData.rawDataPtr->rawlen - 1);
+    Serial.println(F(" timing entries as raw "));
+    IrReceiver.printIRResultRawFormatted(&Serial, true); // Output the results in RAW format
+    sStoredIRData.rawCodeLength = IrReceiver.decodedIRData.rawDataPtr->rawlen - 1;
+    /*
+     * Store the current raw data in a dedicated array for later usage
+     */
+    IrReceiver.compensateAndStoreIRResultInArray(sStoredIRData.rawCode);
+  } else {
+    IrReceiver.printIRResultShort(&Serial);
+    sStoredIRData.receivedIRData.flags = 0; // clear flags -esp. repeat- for later sending
+    Serial.println();
+  }
+}
+
+
+void sendIRCode(storedIRDataStruct *aIRDataToSend) {
+  if (aIRDataToSend->receivedIRData.protocol == UNKNOWN /* i.e. raw */) {
+    // Assume 38 KHz
+    IrSender.sendRaw(aIRDataToSend->rawCode, aIRDataToSend->rawCodeLength, 38);
+
+    Serial.print(F("Sent raw "));
+    Serial.print(aIRDataToSend->rawCodeLength);
+    Serial.println(F(" marks or spaces"));
+  } else {
+
+    // Use the write function, which does the switch for different protocols. It's missing in the docs though. :/
+    IrSender.write(&aIRDataToSend->receivedIRData, NO_REPEATS);
+
+    Serial.print(F("Sent: "));
+    printIRResultShort(&Serial, &aIRDataToSend->receivedIRData);
+  }
 }
 
 
