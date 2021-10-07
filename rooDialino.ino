@@ -3,7 +3,8 @@
  *  
  *  Todo:
  *  - increase the IR power by using 2 or 3 IR diodes in series. One diode requires 1.1 to 1.5 volt so we can supply 3 @ 5V, 10-50 Ohm (test)
- *  - Test if we can live with 3.3V pulses (or need to go down to 2 LEDs. Or need a Transistor or Schmitt Trigger.
+ *  - Test if we can live with 3.3V pulses (or need to go down to 2 LEDs. Or need a Transistor or Schmitt Trigger
+ *  - Convert to a table based FSM (à la "Implementierung Einer Finite State Machine V1.1.pdf")
  * 
  *  Notes:
  *  - The default software generated PWM has problems on AVR running with 8 MHz. The PWM frequency is around 30 instead of 38 kHz and RC6 is not reliable. 
@@ -15,6 +16,8 @@
  *  https://cdn.sparkfun.com/assets/c/6/2/2/1/ProMini8MHzv2.pdf
  *  https://gammon.com.au/interrupts
  *  https://thewanderingengineer.com/2014/08/11/arduino-pin-change-interrupts/
+ *  https://www.mikrocontroller.net/articles/Statemachine
+ *  http://stefanfrings.de/multithreading_arduino/index.html
  *  
  ************************************************************************************
  * MIT License
@@ -134,8 +137,8 @@ unsigned long buttonDownMillis = 0;
 unsigned long buttonUpMillis = 0;
 int buttonPressLength;
 
-
 boolean noCodeYetReceived = true;
+unsigned long lastIRreceivedMillis = millis();
 
 // current states
 // byte settingsButtonState = 0;
@@ -171,6 +174,7 @@ void setup() {
   Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
 
   IrSender.begin(IR_SEND_PIN, ENABLE_LED_FEEDBACK); // Specify send pin and enable feedback LED at default feedback LED pin
+  IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK); // Start the receiver, enable feedback LED
 
   Serial.print(F("Ready to send IR signals at pin "));
   Serial.println(IR_SEND_PIN);
@@ -202,8 +206,19 @@ void loop() {
 
   currentMillis = millis(); // needed for async (non-blocking) blinking
   updateLeds();
-  checkButton(); // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state. 
-  checkIR();     // see if relaying was turned on or off
+  checkButton();            // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state. 
+
+  switch(myState) {         // check if relaying was turned on or off via IR
+    case RELAY_SIGNAL_ON:   // but only check when not in a LEARN mode.
+      if (checkIRToggle()) 
+        transitionTo_RELAY_SIGNAL_OFF();
+    case RELAY_SIGNAL_OFF:
+      if (checkIRToggle()) 
+        transitionTo_RELAY_SIGNAL_ON();
+      break;
+    default:
+    break;
+  }
 
   switch(myState) {
     case RELAY_SIGNAL_ON:
@@ -218,6 +233,7 @@ void loop() {
         delay(DELAY_AFTER_SEND); 
       }
       if (volSteps < 0) {
+      
         sAddress = 0x16;
         sCommand = 0x11;
         sRepeats = 0;
@@ -227,6 +243,7 @@ void loop() {
     //    Serial.println(" Down");
         delay(DELAY_AFTER_SEND); 
       }
+      break;
     case RELAY_SIGNAL_OFF: 
       // flash the LEDs to show we are seing pulses (aka rooDial is in reach but relaying is off)
       // Might combine both cases since we want that same visual feedback while relaying too.
@@ -256,6 +273,18 @@ void loop() {
 
 // ****************************************************************************************************************
 
+void transitionTo_RELAY_SIGNAL_ON() {
+  // read codes from EEEPROM
+  // Enable IR LED
+  setLedModes(ON, OFF, OFF);
+  myState = RELAY_SIGNAL_ON;
+}
+
+void transitionTo_RELAY_SIGNAL_OFF() {
+  // Disable IR LED
+  setLedModes(OFF, OFF, OFF);
+  myState = RELAY_SIGNAL_OFF;
+}
 
 void checkButton() { // call in loop(). This calls buttonLongPress() and buttonShortPress().
 
@@ -306,8 +335,32 @@ void checkButton() { // call in loop(). This calls buttonLongPress() and buttonS
   }
 }
 
-bool checkIR() {
-  // see if a relay toggle was requested
+bool checkIRToggle() {
+  // see if a relay state toggle was requested
+  bool received = false;
+  if (IrReceiver.decode()) {
+    // If it's been at least 1/4 second since the last
+    // IR received, toggle the relay
+    if (millis() - lastIRreceivedMillis > 250) {
+      IrReceiver.printIRResultShort(&Serial);
+      received = true;
+    }
+    lastIRreceivedMillis = millis();
+    IrReceiver.resume();
+  }
+  return received;
+  
+//  IrReceiver.stop();
+//  delay(8);
+//  IrReceiver.start(8000); // to compensate for 8 ms stop of receiver. This enables a correct gap measurement.
+//  IrReceiver.resume();
+//  if (IrReceiver.decodedIRData.address == 0) {
+//      if (IrReceiver.decodedIRData.command == 0x10) {
+//          // do something
+//      } else if (IrReceiver.decodedIRData.command == 0x11) {
+//          // do something else
+//      }
+//  }
 }
 
 bool learnIRCode() {
@@ -357,25 +410,12 @@ void buttonLongPress() {
       myState = LEARN_IR_RELAY_TOGGLE;
     break;
 
-    // a long button press in Settings mode should just do nuthin (so far)
     case LEARN_IR_RELAY_TOGGLE:
     case LEARN_IR_VOL_UP:
     case LEARN_IR_VOL_DOWN:
+      // a long button press in Settings mode should just do nuthin (so far)
     break;
 
-//    case SETTING_1:
-//      setLedModes(ON, FASTBLINK, OFF);
-//      myState = LEARN_BASENOISE;
-//    break;
-//    case SETTING_2:
-//      setLedModes(ON, OFF, ONCE);
-//      myState = TIMER_SHORT;
-//    break;
-//    case SETTING_3:
-//      setLedModes(ON, OFF, OFF);
-//      noCodeYetReceived = true;
-//      myState = LEARN_IR;
-//    break;
     default:
     break;
   }
