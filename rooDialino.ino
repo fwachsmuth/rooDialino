@@ -47,6 +47,7 @@
 #define IR_SEND_PIN         8
 
 #include <IRremote.h>
+#include <EEPROM.h>
 
 #define DELAY_AFTER_SEND 5  // shorter than 5 ms might make dirty signal
 
@@ -201,28 +202,56 @@ void loop() {
 
   currentMillis = millis(); // needed for async (non-blocking) blinking
   updateLeds();
-  checkButton(); // This debounces and calls buttonLongPress() and buttonShortPress().
+  checkButton(); // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state. 
+  checkIR();     // see if relaying was turned on or off
+
+  switch(myState) {
+    case RELAY_SIGNAL_ON:
+      if (volSteps > 0) {
+        sAddress = 0x16;
+        sCommand = 0x10;
+        sRepeats = 0;
+        IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
+    //    Serial.print(volSteps);
+        volSteps--;
+    //    Serial.println(" Up");
+        delay(DELAY_AFTER_SEND); 
+      }
+      if (volSteps < 0) {
+        sAddress = 0x16;
+        sCommand = 0x11;
+        sRepeats = 0;
+        IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
+    //    Serial.print(volSteps);
+        volSteps++;
+    //    Serial.println(" Down");
+        delay(DELAY_AFTER_SEND); 
+      }
+    case RELAY_SIGNAL_OFF: 
+      // flash the LEDs to show we are seing pulses (aka rooDial is in reach but relaying is off)
+      // Might combine both cases since we want that same visual feedback while relaying too.
+      // Alternatively, let relay=off just disable the IR Pin... :)
+      break;
+    case LEARN_IR_RELAY_TOGGLE:
+      if (learnIRCode(/* toggle */)) {
+        myState = LEARN_IR_VOL_UP;
+      }
+      break;
+    case LEARN_IR_VOL_UP:
+      if (learnIRCode(/* Vol Up*/)) {
+        myState = LEARN_IR_VOL_DOWN;
+      }
+      break;
+    case LEARN_IR_VOL_DOWN:
+      if (learnIRCode(/* Vol Down*/)) {
+        saveLearnedIRCodes();
+        myState = RELAY_SIGNAL_ON;
+      }
+      break;
+    default:
+    break;
+  }
   
-  if (volSteps > 0) {
-    sAddress = 0x16;
-    sCommand = 0x10;
-    sRepeats = 0;
-    IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
-//    Serial.print(volSteps);
-    volSteps--;
-//    Serial.println(" Up");
-    delay(DELAY_AFTER_SEND); 
-  }
-  if (volSteps < 0) {
-    sAddress = 0x16;
-    sCommand = 0x11;
-    sRepeats = 0;
-    IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
-//    Serial.print(volSteps);
-    volSteps++;
-//    Serial.println(" Down");
-    delay(DELAY_AFTER_SEND); 
-  }
 }
 
 // ****************************************************************************************************************
@@ -276,6 +305,19 @@ void checkButton() { // call in loop(). This calls buttonLongPress() and buttonS
       break;
   }
 }
+
+bool checkIR() {
+  // see if a relay toggle was requested
+}
+
+bool learnIRCode() {
+  // store Manufacturer, Address, Command (and flags?) in an array (or struct?)
+}
+
+bool saveLearnedIRCodes() {
+  // save just learned codes to EEPROM
+}
+
 
 void buttonShortPress() {
   switch(myState) {
@@ -338,6 +380,7 @@ void buttonLongPress() {
     break;
   }
 }
+
 void updateLeds() { // call in loop() to update the connected LEDs as set in ledMode[]
   for (byte thisLed = 0; thisLed < ledPinCount; thisLed++) {
     switch(ledMode[thisLed]) {
