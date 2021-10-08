@@ -118,8 +118,7 @@ struct storedIRDataStruct {
   uint8_t rawCode[RAW_BUFFER_LENGTH]; // The durations if raw
   uint8_t rawCodeLength; // The length of the code
 };
-struct storedIRDataStruct sStoredIRData, IRCodeLearned[3];// TODO: Deprecate sStoredIRData
-
+struct storedIRDataStruct IRCodeLearned[3];
 
 // TODO: Do I need these?
 void storeIRCode(IRData *aIRReceivedData);
@@ -277,17 +276,17 @@ void loop() {
       // Alternatively, let relay=off just disable the IR Pin... :)
       break;
     case LEARN_IR_RELAY_TOGGLE:
-      if (learnIRCode(/* toggle */)) {
+      if (learnIRCode(IR_RELAY_TOGGLE)) {
         transitionTo_LEARN_IR_VOL_UP();
       }
       break;
     case LEARN_IR_VOL_UP:
-      if (learnIRCode(/* Vol Up*/)) {
+      if (learnIRCode(IR_VOL_UP)) {
         transitionTo_LEARN_IR_VOL_DOWN();
       }
       break;
     case LEARN_IR_VOL_DOWN:
-      if (learnIRCode(/* Vol Down*/)) {
+      if (learnIRCode(IR_VOL_DOWN)) {
         saveLearnedIRCodes();
         transitionTo_RELAY_SIGNAL_ON();
       }
@@ -316,21 +315,16 @@ void transitionTo_RELAY_SIGNAL_OFF() {
 void transitionTo_LEARN_IR_RELAY_TOGGLE() {
   // Disable IR LED
   setLedModes(FASTBLINK, OFF, OFF);
-  learnIRCode();
   myState = LEARN_IR_RELAY_TOGGLE;
 }
 
 void transitionTo_LEARN_IR_VOL_UP() {
-  // Disable IR LED
   setLedModes(OFF, FASTBLINK, OFF);
-  learnIRCode();
   myState = LEARN_IR_VOL_UP;
 }
 
 void transitionTo_LEARN_IR_VOL_DOWN() {
-  // Disable IR LED
   setLedModes(OFF, OFF, FASTBLINK);
-  learnIRCode();
   myState = LEARN_IR_VOL_DOWN;
 }
 
@@ -398,13 +392,13 @@ bool checkIRToggle() {
   return received;
 }
 
-bool learnIRCode() {
+bool learnIRCode(byte IRStructArrayIndex) {
   bool received = false;
   
   if (IrReceiver.decode()) {
     if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received
       received = true;
-      storeIRCode(IrReceiver.read());
+      storeIRCode(IrReceiver.read(), IRStructArrayIndex);
     }
     lastIRreceivedMillis = millis();
     IrReceiver.resume(); // resume receiver
@@ -416,9 +410,7 @@ bool saveLearnedIRCodes() {
   // save just learned codes to EEPROM
 }
 
-// Most of this code is just logging
-void storeIRCode(IRData *aIRReceivedData) {  // Most of this code is just logging
-  Serial.println("Storing new code.");
+void storeIRCode(IRData *aIRReceivedData, byte IRStructArrayIndex) {  
   if (aIRReceivedData->flags & IRDATA_FLAGS_IS_REPEAT) {
     Serial.println(F("Ignore repeat"));
     return;
@@ -434,21 +426,25 @@ void storeIRCode(IRData *aIRReceivedData) {  // Most of this code is just loggin
   /*
      Copy decoded data
   */
-  sStoredIRData.receivedIRData = *aIRReceivedData;
+  //sStoredIRData.receivedIRData = *aIRReceivedData;
+  IRCodeLearned[IRStructArrayIndex].receivedIRData = *aIRReceivedData;
 
-  if (sStoredIRData.receivedIRData.protocol == UNKNOWN) {
+  Serial.print("Storing code at index ");
+  Serial.println(IRStructArrayIndex);
+
+  if (IRCodeLearned[IRStructArrayIndex].receivedIRData.protocol == UNKNOWN) {
     Serial.print(F("Received unknown code and store "));
     Serial.print(IrReceiver.decodedIRData.rawDataPtr->rawlen - 1);
     Serial.println(F(" timing entries as raw "));
     IrReceiver.printIRResultRawFormatted(&Serial, true); // Output the results in RAW format
-    sStoredIRData.rawCodeLength = IrReceiver.decodedIRData.rawDataPtr->rawlen - 1;
+    IRCodeLearned[IRStructArrayIndex].rawCodeLength = IrReceiver.decodedIRData.rawDataPtr->rawlen - 1;
     /*
        Store the current raw data in a dedicated array for later usage
     */
-    IrReceiver.compensateAndStoreIRResultInArray(sStoredIRData.rawCode);
+    IrReceiver.compensateAndStoreIRResultInArray(IRCodeLearned[0].rawCode);
   } else {
     IrReceiver.printIRResultShort(&Serial);
-    sStoredIRData.receivedIRData.flags = 0; // clear flags -esp. repeat- for later sending
+    IRCodeLearned[IRStructArrayIndex].receivedIRData.flags = 0; // clear flags -esp. repeat- for later sending
     Serial.println();
   }
 }
