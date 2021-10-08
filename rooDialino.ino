@@ -1,53 +1,53 @@
-/*  Allows a rooDial to set Volume of an Amp or DAC by sending IR signals. 
- *  Expects pulses on Pin 17/27 of the Raspi running rooExtend, requiring rooxtend 2.3.x or later.
- *  
- *  Todo:
- *  - increase the IR power by using 2 or 3 IR diodes in series. One diode requires 1.1 to 1.5 volt so we can supply 3 @ 5V, 10-50 Ohm (test)
- *  - Test if we can live with 3.3V pulses (or need to go down to 2 LEDs. Or need a Transistor or Schmitt Trigger
- *  - Convert to a table based FSM (à la "Implementierung Einer Finite State Machine V1.1.pdf")
- * 
- *  Notes:
- *  - The default software generated PWM has problems on AVR running with 8 MHz. The PWM frequency is around 30 instead of 38 kHz and RC6 is not reliable. 
- *    You can switch to timer PWM generation by #define SEND_PWM_BY_TIMER
- *  
- *  Links:
- *  https://github.com/Arduino-IRremote/Arduino-IRremote
- *  https://arduino-irremote.github.io/Arduino-IRremote/group__Decoder.html#ga6168e3ad4e47c657c9f3de0e5d7590b3
- *  https://cdn.sparkfun.com/assets/c/6/2/2/1/ProMini8MHzv2.pdf
- *  https://gammon.com.au/interrupts
- *  https://thewanderingengineer.com/2014/08/11/arduino-pin-change-interrupts/
- *  https://www.mikrocontroller.net/articles/Statemachine
- *  http://stefanfrings.de/multithreading_arduino/index.html
- *  
- *  FSM as UML:
- *  https://lucid.app/publicSegments/view/7cfc8020-8e97-4eba-ac17-6506d2f960f2/image.png
- *  
+/*  Allows a rooDial to set Volume of an Amp or DAC by sending IR signals.
+    Expects pulses on Pin 17/27 of the Raspi running rooExtend, requiring rooxtend 2.3.x or later.
+
+    Todo:
+    - increase the IR power by using 2 or 3 IR diodes in series. One diode requires 1.1 to 1.5 volt so we can supply 3 @ 5V, 10-50 Ohm (test)
+    - Test if we can live with 3.3V pulses (or need to go down to 2 LEDs. Or need a Transistor or Schmitt Trigger
+    - Convert to a table based FSM (à la "Implementierung Einer Finite State Machine V1.1.pdf")
+
+    Notes:
+    - The default software generated PWM has problems on AVR running with 8 MHz. The PWM frequency is around 30 instead of 38 kHz and RC6 is not reliable.
+      You can switch to timer PWM generation by #define SEND_PWM_BY_TIMER
+
+    Links:
+    https://github.com/Arduino-IRremote/Arduino-IRremote
+    https://arduino-irremote.github.io/Arduino-IRremote/group__Decoder.html#ga6168e3ad4e47c657c9f3de0e5d7590b3
+    https://cdn.sparkfun.com/assets/c/6/2/2/1/ProMini8MHzv2.pdf
+    https://gammon.com.au/interrupts
+    https://thewanderingengineer.com/2014/08/11/arduino-pin-change-interrupts/
+    https://www.mikrocontroller.net/articles/Statemachine
+    http://stefanfrings.de/multithreading_arduino/index.html
+
+    FSM as UML:
+    https://lucid.app/publicSegments/view/7cfc8020-8e97-4eba-ac17-6506d2f960f2/image.png
+
  ************************************************************************************
- * MIT License
- *
- * Copyright (c) 2021 Friedemann Wachsmuth
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is furnished
- * to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
- * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
- * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
- * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+   MIT License
+
+   Copyright (c) 2021 Friedemann Wachsmuth
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is furnished
+   to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+   INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+   PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+   CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+   OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
  ************************************************************************************
- */
+*/
 #include <Arduino.h>
-#include "PinDefinitionsAndMore.h" 
+#include "PinDefinitionsAndMore.h"
 
 #define IR_RECEIVE_PIN      7 //  Overwriting IR Pins to free up 2/3 for Interrupts
 #define IR_SEND_PIN         8
@@ -66,7 +66,7 @@
 #define ON                 41
 #define FASTBLINK          42
 #define BLINK              43
-#define ONCE               44 
+#define ONCE               44
 #define TWICE              45
 #define THRICE             46
 
@@ -102,32 +102,39 @@
 #define LEARN_IR_VOL_UP       53
 #define LEARN_IR_VOL_DOWN     54
 
+// Array indices for our IR code structs
+#define IR_RELAY_TOGGLE 0
+#define IR_VOL_UP       1
+#define IR_VOL_DOWN     2
+
 volatile int volSteps;  // keeps track of how many pulses came in from the rooDial
 
-// ******* IR things **************************** 
+// ******* IR things ****************************
 
-// Storage for recorded IR code 
+// Storage for recorded IR code
 struct storedIRDataStruct {
   IRData receivedIRData;
   // extensions for sendRaw
   uint8_t rawCode[RAW_BUFFER_LENGTH]; // The durations if raw
   uint8_t rawCodeLength; // The length of the code
-} sStoredIRData;
+};
+struct storedIRDataStruct sStoredIRData, IRCodeLearned[3];// TODO: Deprecate sStoredIRData
+
 
 // TODO: Do I need these?
 void storeIRCode(IRData *aIRReceivedData);
 void sendIRCode(storedIRDataStruct *aIRDataToSend);
 
 // TOTO: Delete these
-uint16_t sAddress; 
-uint8_t sCommand; 
-uint8_t sRepeats; 
+uint16_t sAddress;
+uint8_t sCommand;
+uint8_t sRepeats;
 
-// ******* LED things **************************** 
+// ******* LED things ****************************
 
 const byte ledPins[] = { 10, 11, 12 };       // an array of pin numbers too which LEDs are attached
-const byte ledPinCount = 3;       
-byte ledMode[] = { ON, OFF, OFF };           
+const byte ledPinCount = 3;
+byte ledMode[] = { ON, OFF, OFF };
 unsigned long fastblinkPrevMillis[] = { 0, 0, 0, 0 };   // will store last time LED was updated
 unsigned long blinkPrevMillis[] = { 0, 0, 0, 0 };       // will store last time LED was updated
 unsigned long currentMillis = 0;
@@ -144,9 +151,9 @@ byte ledBurstPatternCell = 0;
 byte prevLedBurstPatternCell[] = { 0, 0, 0, 0 };
 
 
-// ******* Button things **************************** 
+// ******* Button things ****************************
 
-// Button & Debounce Timing 
+// Button & Debounce Timing
 const unsigned int longPressLength = 3000;
 const unsigned int buttonDebounceInterval = 50;
 // Button Timers
@@ -176,17 +183,17 @@ void volUpISR() {
 }
 
 void setup() {
-//  buttonState = BUTTON_IDLE;
-  
+  //  buttonState = BUTTON_IDLE;
+
   pinMode(PIN2, INPUT_PULLUP);
   pinMode(PIN3, INPUT_PULLUP);
   pinMode(PIN3, INPUT_PULLUP);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   for (int thisLed = 0; thisLed < ledPinCount; thisLed++) pinMode(ledPins[thisLed], OUTPUT);
-  
+
   attachInterrupt(digitalPinToInterrupt(PIN2), volDownISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN3), volUpISR, CHANGE);
-  
+
   Serial.begin(115200);
   // Just to know which program is running on my Arduino
   Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
@@ -198,24 +205,24 @@ void setup() {
   Serial.println(IR_SEND_PIN);
 
 #if defined(USE_SOFT_SEND_PWM) && !defined(ESP32) // for esp32 we use PWM generation by hw_timer_t for each pin
-    /*
-     * Print internal signal generation info
-     */
-    IrSender.enableIROut(38);
+  /*
+     Print internal signal generation info
+  */
+  IrSender.enableIROut(38);
 
-    Serial.print(F("Send signal mark duration is "));
-    Serial.print(IrSender.periodOnTimeMicros);
-    Serial.print(F(" us, pulse correction is "));
-    Serial.print((uint16_t) PULSE_CORRECTION_NANOS);
-    Serial.print(F(" ns, total period is "));
-    Serial.print(IrSender.periodTimeMicros);
-    Serial.println(F(" us"));
+  Serial.print(F("Send signal mark duration is "));
+  Serial.print(IrSender.periodOnTimeMicros);
+  Serial.print(F(" us, pulse correction is "));
+  Serial.print((uint16_t) PULSE_CORRECTION_NANOS);
+  Serial.print(F(" ns, total period is "));
+  Serial.print(IrSender.periodTimeMicros);
+  Serial.println(F(" us"));
 #endif
 }
 
 
 void loop() {
-// Debug Code below
+  // Debug Code below
   if (myState != prevState) {
     Serial.print("Mode: ");
     Serial.println(myState);
@@ -224,21 +231,21 @@ void loop() {
 
   currentMillis = millis(); // needed for async (non-blocking) blinking
   updateLeds();
-  checkButton();            // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state. 
+  checkButton();            // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state.
 
-  switch(myState) {         // check if relaying was turned on or off via IR
+  switch (myState) {        // check if relaying was turned on or off via IR
     case RELAY_SIGNAL_ON:   // but only check when not in a LEARN mode.
-      if (checkIRToggle()) 
+      if (checkIRToggle())
         transitionTo_RELAY_SIGNAL_OFF();
     case RELAY_SIGNAL_OFF:
-      if (checkIRToggle()) 
+      if (checkIRToggle())
         transitionTo_RELAY_SIGNAL_ON();
       break;
     default:
-    break;
+      break;
   }
 
-  switch(myState) {
+  switch (myState) {
     case RELAY_SIGNAL_ON:
       // TODO: turn off recever in these ifs... IrReceiver.stop();
       if (volSteps > 0) {
@@ -246,25 +253,25 @@ void loop() {
         sCommand = 0x10;
         sRepeats = 0;
         IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
-    //    Serial.print(volSteps);
+        //    Serial.print(volSteps);
         volSteps--;
-    //    Serial.println(" Up");
-        delay(DELAY_AFTER_SEND); 
+        //    Serial.println(" Up");
+        delay(DELAY_AFTER_SEND);
       }
       if (volSteps < 0) {
-      
+
         sAddress = 0x16;
         sCommand = 0x11;
         sRepeats = 0;
         IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
-    //    Serial.print(volSteps);
+        //    Serial.print(volSteps);
         volSteps++;
-    //    Serial.println(" Down");
-        delay(DELAY_AFTER_SEND); 
+        //    Serial.println(" Down");
+        delay(DELAY_AFTER_SEND);
       }
       // TODO: turn rrecever back on after these ifs... IrReceiver.resume();
       break;
-    case RELAY_SIGNAL_OFF: 
+    case RELAY_SIGNAL_OFF:
       // flash the LEDs to show we are seing pulses (aka rooDial is in reach but relaying is off)
       // Might combine both cases since we want that same visual feedback while relaying too.
       // Alternatively, let relay=off just disable the IR Pin... :)
@@ -286,9 +293,9 @@ void loop() {
       }
       break;
     default:
-    break;
+      break;
   }
-  
+
 }
 
 // ****************************************************************************************************************
@@ -329,14 +336,14 @@ void transitionTo_LEARN_IR_VOL_DOWN() {
 
 void checkButton() { // call in loop(). This calls buttonLongPress() and buttonShortPress().
 
-// Debug Output below. Comment out if not debugging
-//  if (buttonState != prevButtonState) {
-//    Serial.print("Button: ");
-//    Serial.println(buttonState);
-//    prevButtonState = buttonState;
-//  }
+  // Debug Output below. Comment out if not debugging
+  //  if (buttonState != prevButtonState) {
+  //    Serial.print("Button: ");
+  //    Serial.println(buttonState);
+  //    prevButtonState = buttonState;
+  //  }
 
-  switch(buttonState) {
+  switch (buttonState) {
     case BUTTON_IDLE:
       if (digitalRead(BUTTON_PIN) == LOW) {
         buttonState = BUTTON_DOWN;
@@ -381,8 +388,8 @@ bool checkIRToggle() {
   bool received = false;
 
   if (IrReceiver.decode() == 0xAFFE ) { // should be the correct value, not any value!
-//if (IrReceiver.available()) {
-    if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received, toggle the relay state 
+    //if (IrReceiver.available()) {
+    if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received, toggle the relay state
       received = true;
     }
     lastIRreceivedMillis = millis();
@@ -392,11 +399,17 @@ bool checkIRToggle() {
 }
 
 bool learnIRCode() {
-  if (IrReceiver.available()) {
-    storeIRCode(IrReceiver.read());
+  bool received = false;
+  
+  if (IrReceiver.decode()) {
+    if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received
+      received = true;
+      storeIRCode(IrReceiver.read());
+    }
+    lastIRreceivedMillis = millis();
     IrReceiver.resume(); // resume receiver
-    return true;
   }
+  return received;
 }
 
 bool saveLearnedIRCodes() {
@@ -405,6 +418,7 @@ bool saveLearnedIRCodes() {
 
 // Most of this code is just logging
 void storeIRCode(IRData *aIRReceivedData) {  // Most of this code is just logging
+  Serial.println("Storing new code.");
   if (aIRReceivedData->flags & IRDATA_FLAGS_IS_REPEAT) {
     Serial.println(F("Ignore repeat"));
     return;
@@ -418,8 +432,8 @@ void storeIRCode(IRData *aIRReceivedData) {  // Most of this code is just loggin
     return;
   }
   /*
-   * Copy decoded data
-   */
+     Copy decoded data
+  */
   sStoredIRData.receivedIRData = *aIRReceivedData;
 
   if (sStoredIRData.receivedIRData.protocol == UNKNOWN) {
@@ -429,8 +443,8 @@ void storeIRCode(IRData *aIRReceivedData) {  // Most of this code is just loggin
     IrReceiver.printIRResultRawFormatted(&Serial, true); // Output the results in RAW format
     sStoredIRData.rawCodeLength = IrReceiver.decodedIRData.rawDataPtr->rawlen - 1;
     /*
-     * Store the current raw data in a dedicated array for later usage
-     */
+       Store the current raw data in a dedicated array for later usage
+    */
     IrReceiver.compensateAndStoreIRResultInArray(sStoredIRData.rawCode);
   } else {
     IrReceiver.printIRResultShort(&Serial);
@@ -460,69 +474,69 @@ void sendIRCode(storedIRDataStruct *aIRDataToSend) {
 
 
 void buttonShortPress() {
-  switch(myState) {
+  switch (myState) {
     case RELAY_SIGNAL_ON:
       transitionTo_RELAY_SIGNAL_OFF();
-    break;
+      break;
     case RELAY_SIGNAL_OFF:
       transitionTo_RELAY_SIGNAL_ON();
-    break;
+      break;
 
     // a short button pres skips the expected config step (to keep the prev. stored setting)
     case LEARN_IR_RELAY_TOGGLE:
       transitionTo_LEARN_IR_VOL_UP();
-    break;
+      break;
     case LEARN_IR_VOL_UP:
       transitionTo_LEARN_IR_VOL_DOWN();
-    break;
+      break;
     case LEARN_IR_VOL_DOWN:
       transitionTo_RELAY_SIGNAL_ON();
-    break;
+      break;
 
     default:
-    break;
+      break;
   }
 }
 
 void buttonLongPress() {
-  switch(myState) {
+  switch (myState) {
     case RELAY_SIGNAL_ON:
     case RELAY_SIGNAL_OFF:
       transitionTo_LEARN_IR_RELAY_TOGGLE();
-    break;
+      break;
 
     case LEARN_IR_RELAY_TOGGLE:
     case LEARN_IR_VOL_UP:
     case LEARN_IR_VOL_DOWN:
       // a long button press in Settings mode should just do nuthin (so far)
-    break;
+      break;
 
     default:
-    break;
+      break;
   }
 }
 
 void updateLeds() { // call in loop() to update the connected LEDs as set in ledMode[]
   for (byte thisLed = 0; thisLed < ledPinCount; thisLed++) {
-    switch(ledMode[thisLed]) {
+    switch (ledMode[thisLed]) {
       case OFF:
-        digitalWrite(ledPins[thisLed], LOW); 
-      break;
+        digitalWrite(ledPins[thisLed], LOW);
+        break;
       case ON:
-        digitalWrite(ledPins[thisLed], HIGH); 
-      break;
+        digitalWrite(ledPins[thisLed], HIGH);
+        break;
       case FASTBLINK:
         if (currentMillis - fastblinkPrevMillis[thisLed] >= ledFastBlinkInterval) {
-          digitalWrite(ledPins[thisLed], ledState[thisLed] = !ledState[thisLed]); 
+          digitalWrite(ledPins[thisLed], ledState[thisLed] = !ledState[thisLed]);
           fastblinkPrevMillis[thisLed] = currentMillis;
         }
-      break;
+        break;
       case BLINK:
         if (currentMillis - blinkPrevMillis[thisLed] >= ledSlowBlinkInterval) {
-          digitalWrite(ledPins[thisLed], ledState[thisLed] = !ledState[thisLed]); 
+          digitalWrite(ledPins[thisLed], ledState[thisLed] = !ledState[thisLed]);
           blinkPrevMillis[thisLed] = currentMillis;
         }
-      break;
+        break;
       //
       // The following three burst modes might become useful if we'll need to allow setting a multiplier. Otherwise
       // they are Siluino legacy.
@@ -535,7 +549,7 @@ void updateLeds() { // call in loop() to update the connected LEDs as set in led
             default: digitalWrite(ledPins[thisLed], LOW); break;
           }
         }
-      break;
+        break;
       case TWICE:
         ledBurstPatternCell = (currentMillis / 50 % 20);
         if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed]) {
@@ -545,7 +559,7 @@ void updateLeds() { // call in loop() to update the connected LEDs as set in led
             default: digitalWrite(ledPins[thisLed], LOW); break;
           }
         }
-      break;
+        break;
       case THRICE:
         ledBurstPatternCell = (currentMillis / 50 % 20);
         if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed]) {
@@ -555,15 +569,15 @@ void updateLeds() { // call in loop() to update the connected LEDs as set in led
             default: digitalWrite(ledPins[thisLed], LOW); break;
           }
         }
-      break;
+        break;
       default:
-      break;
+        break;
     }
   }
 }
 
 void setLedModes(byte newSettingsLedMode, byte newVolDownLedMode, byte newVolUpLedMode) { // writes individual set LED modes to a the LED mode array
-  ledMode[0] = newSettingsLedMode;      
+  ledMode[0] = newSettingsLedMode;
   ledMode[1] = newVolDownLedMode;
   ledMode[2] = newVolUpLedMode;
 }
