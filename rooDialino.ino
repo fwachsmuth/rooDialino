@@ -271,18 +271,18 @@ void loop() {
       break;
     case LEARN_IR_RELAY_TOGGLE:
       if (learnIRCode(/* toggle */)) {
-        myState = LEARN_IR_VOL_UP;
+        transitionTo_LEARN_IR_VOL_UP();
       }
       break;
     case LEARN_IR_VOL_UP:
       if (learnIRCode(/* Vol Up*/)) {
-        myState = LEARN_IR_VOL_DOWN;
+        transitionTo_LEARN_IR_VOL_DOWN();
       }
       break;
     case LEARN_IR_VOL_DOWN:
       if (learnIRCode(/* Vol Down*/)) {
         saveLearnedIRCodes();
-        myState = RELAY_SIGNAL_ON;
+        transitionTo_RELAY_SIGNAL_ON();
       }
       break;
     default:
@@ -304,6 +304,24 @@ void transitionTo_RELAY_SIGNAL_OFF() {
   // Disable IR LED
   setLedModes(OFF, OFF, OFF);
   myState = RELAY_SIGNAL_OFF;
+}
+
+void transitionTo_LEARN_IR_RELAY_TOGGLE() {
+  // Disable IR LED
+  setLedModes(FASTBLINK, OFF, OFF);
+  myState = LEARN_IR_RELAY_TOGGLE;
+}
+
+void transitionTo_LEARN_IR_VOL_UP() {
+  // Disable IR LED
+  setLedModes(OFF, FASTBLINK, OFF);
+  myState = LEARN_IR_VOL_UP;
+}
+
+void transitionTo_LEARN_IR_VOL_DOWN() {
+  // Disable IR LED
+  setLedModes(OFF, OFF, FASTBLINK);
+  myState = LEARN_IR_VOL_DOWN;
 }
 
 void checkButton() { // call in loop(). This calls buttonLongPress() and buttonShortPress().
@@ -358,42 +376,24 @@ void checkButton() { // call in loop(). This calls buttonLongPress() and buttonS
 bool checkIRToggle() {
   // see if a relay state toggle was requested
   bool received = false;
-  if (IrReceiver.decode() ) { // should be the correct value, not any value!
-    /* Potentially Useful: 
-     *  .getProtocolString
-     *  .printIRResultAsCVariables
-     *  .sendRaw
-     *  if (IrReceiver.decodedIRData.protocol == UNKNOWN)
-     *  if (IrReceiver.decodedIRData.address == 0) {
-          if (IrReceiver.decodedIRData.command == 0x10) {
-            // do something
-          } else if (IrReceiver.decodedIRData.command == 0x11) {
-            // do something else
-          }
-        }
-        
-     */
-    
-    // If it's been at least 1/4 second since the last
-    // IR received, toggle the relay state 
-    if (millis() - lastIRreceivedMillis > 250) {
-      Serial.println(IrReceiver.decodedIRData.protocol);
-      Serial.println(IrReceiver.decodedIRData.address);
-      Serial.println(IrReceiver.decodedIRData.command);
-//      IrReceiver.printIRResultShort(&Serial); // https://arduino-irremote.github.io/Arduino-IRremote/group__Receiving.html#gae24919a83cfbea5b2c53a851e1d3fed0
+
+  if (IrReceiver.decode() == 0xAFFE ) { // should be the correct value, not any value!
+//if (IrReceiver.available()) {
+    if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received, toggle the relay state 
       received = true;
     }
     lastIRreceivedMillis = millis();
     IrReceiver.resume();
   }
   return received;
-/* Just a note
-
-*/
 }
 
 bool learnIRCode() {
-  // store Manufacturer, Address, Command (and flags?) in an array (or struct?)
+  if (IrReceiver.available()) {
+    storeIRCode(IrReceiver.read());
+    IrReceiver.resume(); // resume receiver
+    return true;
+  }
 }
 
 bool saveLearnedIRCodes() {
@@ -459,26 +459,21 @@ void sendIRCode(storedIRDataStruct *aIRDataToSend) {
 void buttonShortPress() {
   switch(myState) {
     case RELAY_SIGNAL_ON:
-      setLedModes(OFF, OFF, OFF);
-      myState = RELAY_SIGNAL_OFF;
+      transitionTo_RELAY_SIGNAL_OFF();
     break;
     case RELAY_SIGNAL_OFF:
-      setLedModes(ON, OFF, OFF);
-      myState = RELAY_SIGNAL_ON;
+      transitionTo_RELAY_SIGNAL_ON();
     break;
 
     // a short button pres skips the expected config step (to keep the prev. stored setting)
     case LEARN_IR_RELAY_TOGGLE:
-      setLedModes(OFF, FASTBLINK, OFF);
-      myState = LEARN_IR_VOL_UP;
+      transitionTo_LEARN_IR_VOL_UP();
     break;
     case LEARN_IR_VOL_UP:
-      setLedModes(OFF, OFF, FASTBLINK);
-      myState = LEARN_IR_VOL_DOWN;
+      transitionTo_LEARN_IR_VOL_DOWN();
     break;
     case LEARN_IR_VOL_DOWN:
-      setLedModes(ON, OFF, OFF);
-      myState = RELAY_SIGNAL_ON;  // exits Settings Mode
+      transitionTo_RELAY_SIGNAL_ON();
     break;
 
     default:
@@ -490,8 +485,7 @@ void buttonLongPress() {
   switch(myState) {
     case RELAY_SIGNAL_ON:
     case RELAY_SIGNAL_OFF:
-      setLedModes(FASTBLINK, OFF, OFF);
-      myState = LEARN_IR_RELAY_TOGGLE;
+      transitionTo_LEARN_IR_RELAY_TOGGLE();
     break;
 
     case LEARN_IR_RELAY_TOGGLE:
