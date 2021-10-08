@@ -309,18 +309,21 @@ void transitionTo_RELAY_SIGNAL_OFF() {
 void transitionTo_LEARN_IR_RELAY_TOGGLE() {
   // Disable IR LED
   setLedModes(FASTBLINK, OFF, OFF);
+  learnIRCode();
   myState = LEARN_IR_RELAY_TOGGLE;
 }
 
 void transitionTo_LEARN_IR_VOL_UP() {
   // Disable IR LED
   setLedModes(OFF, FASTBLINK, OFF);
+  learnIRCode();
   myState = LEARN_IR_VOL_UP;
 }
 
 void transitionTo_LEARN_IR_VOL_DOWN() {
   // Disable IR LED
   setLedModes(OFF, OFF, FASTBLINK);
+  learnIRCode();
   myState = LEARN_IR_VOL_DOWN;
 }
 
