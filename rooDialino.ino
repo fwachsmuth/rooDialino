@@ -283,7 +283,7 @@ void loop() {
       break;
     case LEARN_IR_VOL_DOWN:
       if (learnIRCode(IR_VOL_DOWN)) {
-        saveLearnedIRCodes();
+        saveLearnedIRCodesToEEPROM();
         transitionTo_RELAY_SIGNAL_ON();
       }
       break;
@@ -392,9 +392,7 @@ bool learnIRCode(byte IRStructArrayIndex) {
   
   if (IrReceiver.decode()) {
     if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received
-      if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
-        Serial.println("Noise detected.");
-      } else {
+      if (IrReceiver.decodedIRData.protocol != UNKNOWN) { // Too much Noise from e.g. LED bulbs around to allow Raw signal recording
         received = true;
         storeIRCode(IrReceiver.read(), IRStructArrayIndex);
       }
@@ -405,7 +403,7 @@ bool learnIRCode(byte IRStructArrayIndex) {
   return received;
 }
 
-bool saveLearnedIRCodes() {
+bool saveLearnedIRCodesToEEPROM() {
   // save just learned codes to EEPROM
 }
 
