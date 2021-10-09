@@ -197,8 +197,6 @@ void setup() {
   IrSender.begin(IR_SEND_PIN, ENABLE_LED_FEEDBACK); // Specify send pin and enable feedback LED at default feedback LED pin
   IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK); // Start the receiver, enable feedback LED
 
-  readLearnedIRCodesFromEEPROM();
-
   Serial.print(F("Ready to send IR signals at pin "));
   Serial.println(IR_SEND_PIN);
 
@@ -216,6 +214,11 @@ void setup() {
   Serial.print(IrSender.periodTimeMicros);
   Serial.println(F(" us"));
 #endif
+
+  if (readLearnedIRCodesFromEEPROM() == false) {
+    transitionTo_LEARN_IR_RELAY_TOGGLE(); // Seems like the EEPROM is empty. Lets learn some codes.
+  }
+
 }
 
 
@@ -397,9 +400,8 @@ bool saveLearnedIRCodesToEEPROM() {
   EEPROM.put(eeAddress, eeMagic);
   eeAddress = eeAddress + sizeof(eeMagic);
   for (byte thisCode = 0; thisCode < NUMBER_OF_CODES_STORED; thisCode++) {
-    EEPROM.put(eeAddress, IRCodeLearned[0]);
+    EEPROM.put(eeAddress, IRCodeLearned[thisCode]);
     eeAddress = eeAddress + sizeof(IRCodeLearned[thisCode]);
-    Serial.println(eeAddress);
   }
 }
 
@@ -410,9 +412,11 @@ bool readLearnedIRCodesFromEEPROM() {
   if (eeMagic == 0xb007ab1e) {
     eeAddress = eeAddress + sizeof(eeMagic);
     for (byte thisCode = 0; thisCode < NUMBER_OF_CODES_STORED; thisCode++) {
-      EEPROM.get(eeAddress, IRCodeLearned[0]);
+      EEPROM.get(eeAddress, IRCodeLearned[thisCode]);
+      
+//      Serial.println(IRCodeLearned[thisCode].receivedIRData);
+      
       eeAddress = eeAddress + sizeof(IRCodeLearned[thisCode]);
-      Serial.println(eeAddress);
     }
     return true;
   } else {
