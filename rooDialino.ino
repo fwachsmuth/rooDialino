@@ -413,9 +413,13 @@ bool readLearnedIRCodesFromEEPROM() {
     eeAddress = eeAddress + sizeof(eeMagic);
     for (byte thisCode = 0; thisCode < NUMBER_OF_CODES_STORED; thisCode++) {
       EEPROM.get(eeAddress, IRCodeLearned[thisCode]);
-      
-//      Serial.println(IRCodeLearned[thisCode].receivedIRData);
-      
+//      storedIRDataStruct thisStruct;
+//      EEPROM.get(eeAddress, thisStruct);
+//      // struct storedIRDataStruct IRCodeLearned[NUMBER_OF_CODES_STORED];
+//      Serial.println(thisStruct.receivedIRData.protocol);
+//      Serial.println(thisStruct.receivedIRData.address);
+//      Serial.println(thisStruct.receivedIRData.command);
+//      Serial.println();
       eeAddress = eeAddress + sizeof(IRCodeLearned[thisCode]);
     }
     return true;
