@@ -380,7 +380,9 @@ bool checkIRToggle() {
 //if (IrReceiver.available()) {
 
   if (IrReceiver.decode()) {
-    if (IrReceiver.decodedIRData.protocol == 20) {
+    if (IrReceiver.decodedIRData.protocol == IRCodeLearned[0].protocol &&
+        IrReceiver.decodedIRData.address  == IRCodeLearned[0].address  &&
+        IrReceiver.decodedIRData.command  == IRCodeLearned[0].command) {
     
       if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received, toggle the relay state
         received = true;
