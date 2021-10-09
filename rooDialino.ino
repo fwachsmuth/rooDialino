@@ -382,12 +382,19 @@ bool checkIRToggle() {
   // see if a relay state toggle was requested
   bool received = false;
 
-  if (false /* IrReceiver.decode() == 0xAFFE */) { // should be the correct value, not any value!
-    //if (IrReceiver.available()) {
-    if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received, toggle the relay state
-      received = true;
+//if (false /* IrReceiver.decode() == 0xAFFE */) { // should be the correct value, not any value!
+//if (IrReceiver.decodedIRData.protocol == IRCodeLearned[0].protocol) {
+//if (IrReceiver.available()) {
+
+  if (IrReceiver.decode()) {
+    if (IrReceiver.decodedIRData.protocol == 20) {
+    
+      if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received, toggle the relay state
+        received = true;
+      }
+      lastIRreceivedMillis = millis();
+    
     }
-    lastIRreceivedMillis = millis();
     IrReceiver.resume();
   }
   return received;
@@ -457,6 +464,11 @@ bool learnIRCode(byte IRStructArrayIndex) {
 
 
 void sendIRCode(storedIRDataStruct *aIRDataToSend) {
+  /*
+   *  Check SendDemo for more verbose documentation on the write function
+   */
+
+  
   if (aIRDataToSend->receivedIRData.protocol == UNKNOWN /* i.e. raw */) {
     // Assume 38 KHz
     IrSender.sendRaw(aIRDataToSend->rawCode, aIRDataToSend->rawCodeLength, 38);
