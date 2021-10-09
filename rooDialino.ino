@@ -387,6 +387,10 @@ bool checkIRToggle() {
   return received;
 }
 
+bool saveLearnedIRCodesToEEPROM() {
+  // save just learned codes to EEPROM
+}
+
 bool learnIRCode(byte IRStructArrayIndex) {
   bool received = false;
   
@@ -394,18 +398,24 @@ bool learnIRCode(byte IRStructArrayIndex) {
     if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received
       if (IrReceiver.decodedIRData.protocol != UNKNOWN) { // Too much Noise from e.g. LED bulbs around to allow Raw signal recording
         received = true;
-        storeIRCode(IrReceiver.read(), IRStructArrayIndex);
+
+        Serial.print("Storing code at index ");
+        Serial.println(IRStructArrayIndex);
+        IRCodeLearned[IRStructArrayIndex].receivedIRData = *IrReceiver.read();
+        IRCodeLearned[IRStructArrayIndex].receivedIRData.flags = 0; // clear any flags -esp. repeat- for later sending
+      
+        IrReceiver.printIRResultShort(&Serial);
+        Serial.println();
       }
+//    IrReceiver.resume();
     }
     lastIRreceivedMillis = millis();
-    IrReceiver.resume(); // resume receiver
+//  IrReceiver.resume(); // resume receiver
   }
+  IrReceiver.resume(); // resume receiver
   return received;
 }
 
-bool saveLearnedIRCodesToEEPROM() {
-  // save just learned codes to EEPROM
-}
 
 void storeIRCode(IRData *aIRReceivedData, byte IRStructArrayIndex) {  
   if (aIRReceivedData->flags & IRDATA_FLAGS_IS_REPEAT) {
@@ -438,7 +448,7 @@ void storeIRCode(IRData *aIRReceivedData, byte IRStructArrayIndex) {
     /*
        Store the current raw data in a dedicated array for later usage
     */
-    IrReceiver.compensateAndStoreIRResultInArray(IRCodeLearned[0].rawCode);
+    IrReceiver.compensateAndStoreIRResultInArray(IRCodeLearned[IRStructArrayIndex].rawCode);
   } else {
     IrReceiver.printIRResultShort(&Serial);
     IRCodeLearned[IRStructArrayIndex].receivedIRData.flags = 0; // clear flags -esp. repeat- for later sending
