@@ -112,18 +112,11 @@ volatile int volSteps;  // keeps track of how many pulses came in from the rooDi
 
 // ******* IR things ****************************
 
-// Storage for recorded IR code
-struct storedIRDataStruct {
-  IRData receivedIRData;
-  // extensions for sendRaw
-  uint8_t rawCode[RAW_BUFFER_LENGTH]; // The durations if raw
-  uint8_t rawCodeLength; // The length of the code
-};
-struct storedIRDataStruct IRCodeLearned[NUMBER_OF_CODES_STORED];
+struct IRData IRCodeLearned[NUMBER_OF_CODES_STORED];
 
 // TODO: Do I need these?
 void storeIRCode(IRData *aIRReceivedData);
-void sendIRCode(storedIRDataStruct *aIRDataToSend);
+void sendIRCode(IRData *aIRDataToSend);
 
 // TOTO: Delete these
 uint16_t sAddress;
@@ -409,6 +402,7 @@ bool saveLearnedIRCodesToEEPROM() {
   for (byte thisCode = 0; thisCode < NUMBER_OF_CODES_STORED; thisCode++) {
     EEPROM.put(eeAddress, IRCodeLearned[thisCode]);
     eeAddress = eeAddress + sizeof(IRCodeLearned[thisCode]);
+    Serial.println(eeAddress);
   }
 }
 
@@ -420,13 +414,12 @@ bool readLearnedIRCodesFromEEPROM() {
     eeAddress = eeAddress + sizeof(eeMagic);
     for (byte thisCode = 0; thisCode < NUMBER_OF_CODES_STORED; thisCode++) {
       EEPROM.get(eeAddress, IRCodeLearned[thisCode]);
-//      storedIRDataStruct thisStruct;
-//      EEPROM.get(eeAddress, thisStruct);
-//      // struct storedIRDataStruct IRCodeLearned[NUMBER_OF_CODES_STORED];
-//      Serial.println(thisStruct.receivedIRData.protocol);
-//      Serial.println(thisStruct.receivedIRData.address);
-//      Serial.println(thisStruct.receivedIRData.command);
-//      Serial.println();
+      IRData thisStruct;
+      EEPROM.get(eeAddress, thisStruct);
+      Serial.println(thisStruct.protocol);
+      Serial.println(thisStruct.address);
+      Serial.println(thisStruct.command);
+      Serial.println();
       eeAddress = eeAddress + sizeof(IRCodeLearned[thisCode]);
     }
     return true;
@@ -445,8 +438,8 @@ bool learnIRCode(byte IRStructArrayIndex) {
   
         Serial.print("Storing code at index ");
         Serial.println(IRStructArrayIndex);
-        IRCodeLearned[IRStructArrayIndex].receivedIRData = *IrReceiver.read();
-        IRCodeLearned[IRStructArrayIndex].receivedIRData.flags = 0; // clear any flags -esp. repeat- for later sending
+        IRCodeLearned[IRStructArrayIndex] = *IrReceiver.read();
+        IRCodeLearned[IRStructArrayIndex].flags = 0; // clear any flags -esp. repeat- for later sending
       
         IrReceiver.printIRResultShort(&Serial);
   
@@ -463,27 +456,15 @@ bool learnIRCode(byte IRStructArrayIndex) {
 }
 
 
-void sendIRCode(storedIRDataStruct *aIRDataToSend) {
+void sendIRCode(IRData *aIRDataToSend) {
   /*
    *  Check SendDemo for more verbose documentation on the write function
    */
+  // Use the write function, which does the switch for different protocols. It's missing in the docs though. :/
+//  IrSender.write(&aIRDataToSend->receivedIRData, NO_REPEATS);
 
-  
-  if (aIRDataToSend->receivedIRData.protocol == UNKNOWN /* i.e. raw */) {
-    // Assume 38 KHz
-    IrSender.sendRaw(aIRDataToSend->rawCode, aIRDataToSend->rawCodeLength, 38);
-
-    Serial.print(F("Sent raw "));
-    Serial.print(aIRDataToSend->rawCodeLength);
-    Serial.println(F(" marks or spaces"));
-  } else {
-
-    // Use the write function, which does the switch for different protocols. It's missing in the docs though. :/
-    IrSender.write(&aIRDataToSend->receivedIRData, NO_REPEATS);
-
-    Serial.print(F("Sent: "));
-    printIRResultShort(&Serial, &aIRDataToSend->receivedIRData);
-  }
+  Serial.print(F("Sent: "));
+//  printIRResultShort(&Serial, &aIRDataToSend->receivedIRData);
 }
 
 
