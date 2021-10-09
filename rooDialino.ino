@@ -141,10 +141,6 @@ int ledState[] = { LOW, LOW, LOW, LOW };                // ledState Array used t
 
 const unsigned int ledSlowBlinkInterval = 200;
 const unsigned int ledFastBlinkInterval = 80;
-const unsigned int sampleBaseNoisePeriod = 3000;
-const unsigned int learnBaseNoiseInitialDelay = 3000;
-const unsigned int permanentNoiseMinLength = 5000;
-
 
 byte ledBurstPatternCell = 0;
 byte prevLedBurstPatternCell[] = { 0, 0, 0, 0 };
@@ -313,7 +309,6 @@ void transitionTo_RELAY_SIGNAL_OFF() {
 }
 
 void transitionTo_LEARN_IR_RELAY_TOGGLE() {
-  // Disable IR LED
   setLedModes(FASTBLINK, OFF, OFF);
   myState = LEARN_IR_RELAY_TOGGLE;
 }
@@ -397,8 +392,12 @@ bool learnIRCode(byte IRStructArrayIndex) {
   
   if (IrReceiver.decode()) {
     if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received
-      received = true;
-      storeIRCode(IrReceiver.read(), IRStructArrayIndex);
+      if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
+        Serial.println("Noise detected.");
+      } else {
+        received = true;
+        storeIRCode(IrReceiver.read(), IRStructArrayIndex);
+      }
     }
     lastIRreceivedMillis = millis();
     IrReceiver.resume(); // resume receiver
