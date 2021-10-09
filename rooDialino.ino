@@ -376,7 +376,7 @@ bool checkIRToggle() {
   // see if a relay state toggle was requested
   bool received = false;
 
-  if (IrReceiver.decode() == 0xAFFE ) { // should be the correct value, not any value!
+  if (false /* IrReceiver.decode() == 0xAFFE */) { // should be the correct value, not any value!
     //if (IrReceiver.available()) {
     if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received, toggle the relay state
       received = true;
@@ -393,67 +393,23 @@ bool saveLearnedIRCodesToEEPROM() {
 
 bool learnIRCode(byte IRStructArrayIndex) {
   bool received = false;
-  
-  if (IrReceiver.decode()) {
-    if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received
-      if (IrReceiver.decodedIRData.protocol != UNKNOWN) { // Too much Noise from e.g. LED bulbs around to allow Raw signal recording
-        received = true;
+    if (IrReceiver.decode() && IrReceiver.decodedIRData.protocol != UNKNOWN) { // Too much Noise from e.g. LED bulbs around to allow Raw signal recording
+      if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received
+      received = true;
 
-        Serial.print("Storing code at index ");
-        Serial.println(IRStructArrayIndex);
-        IRCodeLearned[IRStructArrayIndex].receivedIRData = *IrReceiver.read();
-        IRCodeLearned[IRStructArrayIndex].receivedIRData.flags = 0; // clear any flags -esp. repeat- for later sending
-      
-        IrReceiver.printIRResultShort(&Serial);
-        Serial.println();
-      }
-//    IrReceiver.resume();
+      Serial.print("Storing code at index ");
+      Serial.println(IRStructArrayIndex);
+      IRCodeLearned[IRStructArrayIndex].receivedIRData = *IrReceiver.read();
+      IRCodeLearned[IRStructArrayIndex].receivedIRData.flags = 0; // clear any flags -esp. repeat- for later sending
+    
+      IrReceiver.printIRResultShort(&Serial);
+
+      Serial.println();
     }
     lastIRreceivedMillis = millis();
-//  IrReceiver.resume(); // resume receiver
+    IrReceiver.resume(); // resume receiver <- hat queue
   }
-  IrReceiver.resume(); // resume receiver
   return received;
-}
-
-
-void storeIRCode(IRData *aIRReceivedData, byte IRStructArrayIndex) {  
-  if (aIRReceivedData->flags & IRDATA_FLAGS_IS_REPEAT) {
-    Serial.println(F("Ignore repeat"));
-    return;
-  }
-  if (aIRReceivedData->flags & IRDATA_FLAGS_IS_AUTO_REPEAT) {
-    Serial.println(F("Ignore autorepeat"));
-    return;
-  }
-  if (aIRReceivedData->flags & IRDATA_FLAGS_PARITY_FAILED) {
-    Serial.println(F("Ignore parity error"));
-    return;
-  }
-  /*
-     Copy decoded data
-  */
-  //sStoredIRData.receivedIRData = *aIRReceivedData;
-  IRCodeLearned[IRStructArrayIndex].receivedIRData = *aIRReceivedData;
-
-  Serial.print("Storing code at index ");
-  Serial.println(IRStructArrayIndex);
-
-  if (IRCodeLearned[IRStructArrayIndex].receivedIRData.protocol == UNKNOWN) {
-    Serial.print(F("Received unknown code and store "));
-    Serial.print(IrReceiver.decodedIRData.rawDataPtr->rawlen - 1);
-    Serial.println(F(" timing entries as raw "));
-    IrReceiver.printIRResultRawFormatted(&Serial, true); // Output the results in RAW format
-    IRCodeLearned[IRStructArrayIndex].rawCodeLength = IrReceiver.decodedIRData.rawDataPtr->rawlen - 1;
-    /*
-       Store the current raw data in a dedicated array for later usage
-    */
-    IrReceiver.compensateAndStoreIRResultInArray(IRCodeLearned[IRStructArrayIndex].rawCode);
-  } else {
-    IrReceiver.printIRResultShort(&Serial);
-    IRCodeLearned[IRStructArrayIndex].receivedIRData.flags = 0; // clear flags -esp. repeat- for later sending
-    Serial.println();
-  }
 }
 
 
