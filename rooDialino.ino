@@ -409,7 +409,10 @@ bool learnIRCode(byte IRStructArrayIndex) {
       }
     }
     lastIRreceivedMillis = millis();
-    IrReceiver.resume(); // resume receiver <- hat queue
+    IrReceiver.resume(); /* 
+      This still queues signal appearing in subsequent calls. Try approach from Siluino:L474.
+      Or, like in the ReceiveAndSend Example, check IrReceiver.available() and then do a IrReceiver.read() instead of the .decode.
+    */                         
   }
   return received;
 }
