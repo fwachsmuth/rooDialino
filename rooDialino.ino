@@ -106,6 +106,7 @@
 #define IR_RELAY_TOGGLE 0
 #define IR_VOL_UP       1
 #define IR_VOL_DOWN     2
+#define NUMBER_OF_CODES_STORED  3 // array size
 
 volatile int volSteps;  // keeps track of how many pulses came in from the rooDial
 
@@ -118,7 +119,7 @@ struct storedIRDataStruct {
   uint8_t rawCode[RAW_BUFFER_LENGTH]; // The durations if raw
   uint8_t rawCodeLength; // The length of the code
 };
-struct storedIRDataStruct IRCodeLearned[3];
+struct storedIRDataStruct IRCodeLearned[NUMBER_OF_CODES_STORED];
 
 // TODO: Do I need these?
 void storeIRCode(IRData *aIRReceivedData);
@@ -389,6 +390,15 @@ bool checkIRToggle() {
 
 bool saveLearnedIRCodesToEEPROM() {
   // save just learned codes to EEPROM
+  int eeAddress = 0;
+  const unsigned long eeMagic = 0xb007ab1e; // leave a magic mark that we have been here here before.
+  EEPROM.put(eeAddress, eeMagic);
+  eeAddress = eeAddress + sizeof(eeMagic);
+  for (byte thisCode = 0; thisCode < NUMBER_OF_CODES_STORED; thisCode++) {
+    EEPROM.put(eeAddress, IRCodeLearned[0]);
+    eeAddress = eeAddress + sizeof(IRCodeLearned[thisCode]);
+    Serial.println(eeAddress);
+  }
 }
 
 bool learnIRCode(byte IRStructArrayIndex) {
