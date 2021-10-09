@@ -149,7 +149,7 @@ byte prevLedBurstPatternCell[] = { 0, 0, 0, 0 };
 // ******* Button things ****************************
 
 // Button & Debounce Timing
-const unsigned int longPressLength = 3000;
+const unsigned long longPressLength = 3000;
 const unsigned int buttonDebounceInterval = 50;
 // Button Timers
 unsigned long previousButtonMillis = 0;
@@ -224,7 +224,7 @@ void loop() {
     prevState = myState;
   }
 
-  currentMillis = millis(); // needed for async (non-blocking) blinking
+  currentMillis = millis(); // needed for async (non-blocking) blinking amd button debouncing
   updateLeds();
   checkButton();            // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state.
 
@@ -326,11 +326,11 @@ void transitionTo_LEARN_IR_VOL_DOWN() {
 void checkButton() { // call in loop(). This calls buttonLongPress() and buttonShortPress().
 
   // Debug Output below. Comment out if not debugging
-  //  if (buttonState != prevButtonState) {
-  //    Serial.print("Button: ");
-  //    Serial.println(buttonState);
-  //    prevButtonState = buttonState;
-  //  }
+//    if (buttonState != prevButtonState) {
+//      Serial.print("Button: ");
+//      Serial.println(buttonState);
+//      prevButtonState = buttonState;
+//    }
 
   switch (buttonState) {
     case BUTTON_IDLE:
@@ -348,7 +348,7 @@ void checkButton() { // call in loop(). This calls buttonLongPress() and buttonS
     case BUTTON_WAIT:
       if (digitalRead(BUTTON_PIN) == HIGH) {
         buttonState = BUTTON_UP;
-      } else if (currentMillis - longPressLength >= buttonDownMillis) {
+      } else if (currentMillis >= longPressLength + buttonDownMillis) { // This will not work for 3 seconds every 50 days and 70 minutes, but who cares
         buttonLongPress();
         buttonState = BUTTON_IGNOREDOWN;
       }
@@ -393,18 +393,20 @@ bool saveLearnedIRCodesToEEPROM() {
 
 bool learnIRCode(byte IRStructArrayIndex) {
   bool received = false;
-    if (IrReceiver.decode() && IrReceiver.decodedIRData.protocol != UNKNOWN) { // Too much Noise from e.g. LED bulbs around to allow Raw signal recording
-      if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received
-      received = true;
-
-      Serial.print("Storing code at index ");
-      Serial.println(IRStructArrayIndex);
-      IRCodeLearned[IRStructArrayIndex].receivedIRData = *IrReceiver.read();
-      IRCodeLearned[IRStructArrayIndex].receivedIRData.flags = 0; // clear any flags -esp. repeat- for later sending
-    
-      IrReceiver.printIRResultShort(&Serial);
-
-      Serial.println();
+    if (IrReceiver.decode()) { 
+      if (IrReceiver.decodedIRData.protocol != UNKNOWN) { // Too much Noise from e.g. LED bulbs around to allow Raw signal recording
+        if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received
+        received = true;
+  
+        Serial.print("Storing code at index ");
+        Serial.println(IRStructArrayIndex);
+        IRCodeLearned[IRStructArrayIndex].receivedIRData = *IrReceiver.read();
+        IRCodeLearned[IRStructArrayIndex].receivedIRData.flags = 0; // clear any flags -esp. repeat- for later sending
+      
+        IrReceiver.printIRResultShort(&Serial);
+  
+        Serial.println();
+      }
     }
     lastIRreceivedMillis = millis();
     IrReceiver.resume(); // resume receiver <- hat queue
