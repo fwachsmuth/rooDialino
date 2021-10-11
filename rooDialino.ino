@@ -118,7 +118,7 @@ struct IRData IRCodeLearned[NUMBER_OF_CODES_STORED];
 void storeIRCode(IRData *aIRReceivedData);
 void sendIRCode(IRData *aIRDataToSend);
 
-// TOTO: Delete these
+// TODO: Delete these
 uint16_t sAddress;
 uint8_t sCommand;
 uint8_t sRepeats;
@@ -208,7 +208,7 @@ void setup() {
   Serial.println(F(" us"));
 #endif
 
-  if (readLearnedIRCodesFromEEPROM() == false) {
+  if (!readLearnedIRCodesFromEEPROM()) {
     transitionTo_LEARN_IR_RELAY_TOGGLE(); // Seems like the EEPROM is empty. Lets learn some codes.
   }
 
@@ -231,6 +231,7 @@ void loop() {
     case RELAY_SIGNAL_ON:   // but only check when not in a LEARN mode.
       if (checkIRToggle())
         transitionTo_RELAY_SIGNAL_OFF();
+      break;
     case RELAY_SIGNAL_OFF:
       if (checkIRToggle())
         transitionTo_RELAY_SIGNAL_ON();
@@ -243,26 +244,18 @@ void loop() {
     case RELAY_SIGNAL_ON:
       // TODO: turn off recever in these ifs... IrReceiver.stop();
       if (volSteps > 0) {
-        sAddress = 0x16;
-        sCommand = 0x10;
-        sRepeats = 0;
-        IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
-        //    Serial.print(volSteps);
+        sendIRCode(IR_VOL_UP);
+        Serial.print(volSteps);
         volSteps--;
-        //    Serial.println(" Up");
+        Serial.println(" Up");
         delay(DELAY_AFTER_SEND);
       }
       if (volSteps < 0) {
-
-        sAddress = 0x16;
-        sCommand = 0x11;
-        sRepeats = 0;
-        IrSender.sendRC5(sAddress & 0x1F, sCommand & 0x3F, sRepeats, true); // 5 address, 6 command bits
-        //    Serial.print(volSteps);
+        sendIRCode(IR_VOL_DOWN);
+        Serial.print(volSteps);
         volSteps++;
-        //    Serial.println(" Down");
-        delay(DELAY_AFTER_SEND);
-      }
+        Serial.println(" Down");
+        delay(DELAY_AFTER_SEND);      }
       // TODO: turn rrecever back on after these ifs... IrReceiver.resume();
       break;
     case RELAY_SIGNAL_OFF:
@@ -457,16 +450,23 @@ bool learnIRCode(byte IRStructArrayIndex) {
   return received;
 }
 
-
-void sendIRCode(IRData *aIRDataToSend) {
+void sendIRCode(byte IRcommand) {
   /*
    *  Check SendDemo for more verbose documentation on the write function
    */
   // Use the write function, which does the switch for different protocols. It's missing in the docs though. :/
-//  IrSender.write(&aIRDataToSend->receivedIRData, NO_REPEATS);
 
+  IRData IRSendData;
+  // prepare data
+  IRSendData.protocol = IRCodeLearned[IRcommand].protocol;
+  IRSendData.address = IRCodeLearned[IRcommand].address;
+  IRSendData.command = IRCodeLearned[IRcommand].command;
+  IRSendData.flags = IRDATA_FLAGS_EMPTY;
+
+  IrSender.write(&IRSendData, NO_REPEATS);
   Serial.print(F("Sent: "));
-//  printIRResultShort(&Serial, &aIRDataToSend->receivedIRData);
+  printIRResultShort(&Serial, &IRSendData);
+
 }
 
 
