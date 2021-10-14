@@ -125,7 +125,7 @@ uint8_t sRepeats;
 
 // ******* LED things ****************************
 
-const byte ledPins[] = { 10, 11, 12 };       // an array of pin numbers too which LEDs are attached
+const byte ledPins[] = { 10, 5, 6, A1, A2 };       // an array of pin numbers too which LEDs are attached
 const byte ledPinCount = 3;
 byte ledMode[] = { ON, OFF, OFF };
 unsigned long fastblinkPrevMillis[] = { 0, 0, 0, 0 };   // will store last time LED was updated
