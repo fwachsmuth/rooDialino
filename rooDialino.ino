@@ -18,6 +18,7 @@
     https://thewanderingengineer.com/2014/08/11/arduino-pin-change-interrupts/
     https://www.mikrocontroller.net/articles/Statemachine
     http://stefanfrings.de/multithreading_arduino/index.html
+    https://support.jlcpcb.com/article/84-how-to-generate-the-bom-and-centroid-file-from-kicad
 
     FSM as UML:
     https://lucid.app/publicSegments/view/7cfc8020-8e97-4eba-ac17-6506d2f960f2/image.png
