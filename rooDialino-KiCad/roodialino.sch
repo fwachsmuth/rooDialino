@@ -34,12 +34,12 @@ L Device:Crystal_Small Y1
 U 1 1 5E11C8C9
 P 2350 1800
 F 0 "Y1" V 2350 1750 50  0000 L CNN
-F 1 "16MHz" V 2200 1700 50  0000 L CNN
+F 1 "16MHz" V 2500 1700 50  0000 L CNN
 F 2 "Crystal:Crystal_SMD_3225-4Pin_3.2x2.5mm" H 2350 1800 50  0001 C CNN
 F 3 "~" H 2350 1800 50  0001 C CNN
 F 4 "C13738" V 2350 1800 50  0001 C CNN "LCSC"
 	1    2350 1800
-	0    1    1    0   
+	0    1    -1   0   
 $EndComp
 Wire Wire Line
 	2000 1700 2350 1700
@@ -529,10 +529,10 @@ F 4 "C17710" H 4100 4900 50  0001 C CNN "LCSC"
 	-1   0    0    1   
 $EndComp
 $Comp
-L Device:R R8
+L Device:R R6
 U 1 1 616F1CC8
 P 4450 4900
-F 0 "R8" H 4300 4850 50  0000 C CNN
+F 0 "R6" H 4300 4850 50  0000 C CNN
 F 1 "470" H 4300 4950 50  0000 C CNN
 F 2 "Resistor_SMD:R_0805_2012Metric" V 4380 4900 50  0001 C CNN
 F 3 "~" H 4450 4900 50  0001 C CNN
@@ -574,10 +574,10 @@ F 3 "~" H 5100 2200 50  0001 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L Device:R R7
+L Device:R R8
 U 1 1 6178C156
 P 4650 2450
-F 0 "R7" H 4500 2500 50  0000 C CNN
+F 0 "R8" H 4500 2500 50  0000 C CNN
 F 1 "22k" H 4500 2400 50  0000 C CNN
 F 2 "Resistor_SMD:R_0402_1005Metric" V 4580 2450 50  0001 C CNN
 F 3 "~" H 4650 2450 50  0001 C CNN
@@ -637,10 +637,10 @@ F 3 "~" H 4850 1800 50  0001 C CNN
 	-1   0    0    1   
 $EndComp
 $Comp
-L Device:R R6
+L Device:R R7
 U 1 1 617E0549
 P 4650 1400
-F 0 "R6" H 4500 1450 50  0000 C CNN
+F 0 "R7" H 4500 1450 50  0000 C CNN
 F 1 "5R1" H 4500 1350 50  0000 C CNN
 F 2 "Resistor_SMD:R_0805_2012Metric" V 4580 1400 50  0001 C CNN
 F 3 "~" H 4650 1400 50  0001 C CNN
@@ -1274,11 +1274,11 @@ Connection ~ 8950 5900
 Wire Wire Line
 	9500 5900 9550 5900
 Connection ~ 9500 5900
-Text Label 5650 5050 2    50   ~ 0
-VOL-3
-Text Label 5650 5150 2    50   ~ 0
-RX3
 Text Label 5650 5250 2    50   ~ 0
+VOL-3
+Text Label 5650 5550 2    50   ~ 0
+RX3
+Text Label 5650 5650 2    50   ~ 0
 TX3
 Text Label 8900 4950 2    50   ~ 0
 GPIO5
@@ -1289,19 +1289,19 @@ Text Label 9550 4950 0    50   ~ 0
 D9
 Text Label 9550 5900 0    50   ~ 0
 A0
-Text Label 6550 5250 0    50   ~ 0
+Text Label 6550 5550 0    50   ~ 0
 RX5
-Text Label 6550 5150 0    50   ~ 0
+Text Label 6550 5650 0    50   ~ 0
 TX5
-Text Label 6550 5050 0    50   ~ 0
+Text Label 6550 5250 0    50   ~ 0
 VOL-5
-Text Label 6550 4950 0    50   ~ 0
+Text Label 6550 5450 0    50   ~ 0
 VOL+5
 $Comp
-L Connector:TestPoint TP7
+L Connector:TestPoint TP5
 U 1 1 61EBC057
 P 9400 2100
-F 0 "TP7" V 9350 2300 50  0000 L CNN
+F 0 "TP5" V 9350 2300 50  0000 L CNN
 F 1 "IRTX" V 9450 2000 50  0000 L CNN
 F 2 "TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm" H 9600 2100 50  0001 C CNN
 F 3 "~" H 9600 2100 50  0001 C CNN
@@ -1309,10 +1309,10 @@ F 3 "~" H 9600 2100 50  0001 C CNN
 	0    1    1    0   
 $EndComp
 $Comp
-L Connector:TestPoint TP8
+L Connector:TestPoint TP6
 U 1 1 61EBC300
 P 9400 2250
-F 0 "TP8" V 9350 2450 50  0000 L CNN
+F 0 "TP6" V 9350 2450 50  0000 L CNN
 F 1 "IRRCV" V 9450 2100 50  0000 L CNN
 F 2 "TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm" H 9600 2250 50  0001 C CNN
 F 3 "~" H 9600 2250 50  0001 C CNN
@@ -1332,10 +1332,10 @@ IRTX
 Text Label 9400 2250 2    50   ~ 0
 IRRCV
 $Comp
-L Connector:TestPoint TP9
+L Connector:TestPoint TP7
 U 1 1 61EBCD0A
 P 9400 2450
-F 0 "TP9" V 9350 2650 50  0000 L CNN
+F 0 "TP7" V 9350 2650 50  0000 L CNN
 F 1 "GND" V 9450 2400 50  0000 L CNN
 F 2 "TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm" H 9600 2450 50  0001 C CNN
 F 3 "~" H 9600 2450 50  0001 C CNN
@@ -1389,21 +1389,21 @@ F 4 "C17206" H 6100 5250 50  0001 C CNN "LCSC"
 	1    6100 5250
 	1    0    0    -1  
 $EndComp
-Text Label 5650 4950 2    50   ~ 0
+Text Label 5650 5450 2    50   ~ 0
 VOL+3
 Text Label 5650 5350 2    50   ~ 0
 MISO3
-Text Label 5650 5450 2    50   ~ 0
+Text Label 5650 5150 2    50   ~ 0
 MOSI3
-Text Label 5650 5550 2    50   ~ 0
+Text Label 5650 5050 2    50   ~ 0
 SCK3
-Text Label 5650 5650 2    50   ~ 0
+Text Label 5650 4950 2    50   ~ 0
 RST3
-Text Label 6550 5650 0    50   ~ 0
+Text Label 6550 4950 0    50   ~ 0
 ~RST~
-Text Label 6550 5550 0    50   ~ 0
+Text Label 6550 5050 0    50   ~ 0
 SCK5
-Text Label 6550 5450 0    50   ~ 0
+Text Label 6550 5150 0    50   ~ 0
 MOSI5
 Text Label 6550 5350 0    50   ~ 0
 MISO5
@@ -1510,10 +1510,10 @@ Wire Wire Line
 Wire Wire Line
 	6100 5950 6100 6000
 $Comp
-L Connector:TestPoint TP10
+L Connector:TestPoint TP8
 U 1 1 61FF236E
 P 9400 2700
-F 0 "TP10" V 9350 2900 50  0000 L CNN
+F 0 "TP8" V 9350 2900 50  0000 L CNN
 F 1 "+3.3V" V 9450 2600 50  0000 L CNN
 F 2 "TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm" H 9600 2700 50  0001 C CNN
 F 3 "~" H 9600 2700 50  0001 C CNN
@@ -1521,10 +1521,10 @@ F 3 "~" H 9600 2700 50  0001 C CNN
 	0    1    1    0   
 $EndComp
 $Comp
-L Connector:TestPoint TP11
+L Connector:TestPoint TP9
 U 1 1 61FF42DA
 P 9400 2850
-F 0 "TP11" V 9350 3050 50  0000 L CNN
+F 0 "TP9" V 9350 3050 50  0000 L CNN
 F 1 "+5V" V 9450 2750 50  0000 L CNN
 F 2 "TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm" H 9600 2850 50  0001 C CNN
 F 3 "~" H 9600 2850 50  0001 C CNN
@@ -1715,4 +1715,5 @@ Wire Wire Line
 Connection ~ 1200 6050
 NoConn ~ 2000 2400
 NoConn ~ 2000 2500
+NoConn ~ 2600 2700
 $EndSCHEMATC
