@@ -2,7 +2,7 @@
 <export version="D">
   <design>
     <source>/Users/peaceman/code/Arduino/rooDialino/rooDialino-KiCad/roodialino.sch</source>
-    <date>2021 October 18, Monday 20:55:59</date>
+    <date>2021 October 18, Monday 21:48:09</date>
     <tool>Eeschema (5.1.10-1-10_14)</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -127,6 +127,9 @@
       <value>47n</value>
       <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
       <datasheet>~</datasheet>
+      <fields>
+        <field name="LCSC">C1622</field>
+      </fields>
       <libsource lib="Device" part="C_Small" description="Unpolarized capacitor, small symbol"/>
       <sheetpath names="/" tstamps="/"/>
       <tstamp>6169CEA6</tstamp>

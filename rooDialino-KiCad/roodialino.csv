@@ -1,6 +1,6 @@
 Comment,Designator,Footprint,LCSC
 "100n","C1,C3,C6,C9,C10,C12","Capacitor_SMD:C_0603_1608Metric","C14663"
-"47n","C11","Capacitor_SMD:C_0603_1608Metric",""
+"47n","C11","Capacitor_SMD:C_0603_1608Metric","C1622"
 "22p","C4,C5","Capacitor_SMD:C_0402_1005Metric","C1555"
 "100u","C7","Capacitor_SMD:C_1206_3216Metric","C15008"
 "100u","C2,C8","Capacitor_SMD:C_1210_3225Metric","C16133"
