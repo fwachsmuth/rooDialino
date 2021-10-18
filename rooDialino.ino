@@ -19,6 +19,8 @@
     https://www.mikrocontroller.net/articles/Statemachine
     http://stefanfrings.de/multithreading_arduino/index.html
     https://support.jlcpcb.com/article/84-how-to-generate-the-bom-and-centroid-file-from-kicad
+    https://yaqwsx.github.io/jlcparts/#/
+    https://ravikiranb.com/projects/kicad-rpiz-uhat-template/
 
     FSM as UML:
     https://lucid.app/publicSegments/view/7cfc8020-8e97-4eba-ac17-6506d2f960f2/image.png
