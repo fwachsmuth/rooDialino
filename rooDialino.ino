@@ -83,26 +83,25 @@
 #define BUTTON_PIN   4
 
 // LED Modes
-#define OFF                40
-#define ON                 41
-#define FASTBLINK          42
-#define BLINK              43
-#define ONCE               44
-#define TWICE              45
-#define THRICE             46
+enum LedMode {
+  off = 0,
+  on,
+  fastBlink,
+  blink,
+  once,
+  twice,
+  thrice,
+};
 
 // Button States. This is (was) for software debounce. An RC pair does the job much easier
-// Short presses go from state 10 to 15
-// Long presses go from 10 to 13 and then eventually to 16 (until letting go, which leds to 15 + 10)
-
 enum ButtonState {
   idle = 0,
-  down = 1,
-  debounceDown = 2,
-  held = 3,
-  up = 4,
-  debounceUp = 5,
-  longPress = 6,
+  down,
+  debounceDown,
+  held,
+  up,
+  debounceUp,
+  longPress,
 };
 const char* buttonStateStr[] = {"Idle", "Down", "Debounce Down", "Held", "Up", "Debounce Up", "Longpress"};
 
@@ -153,7 +152,7 @@ uint8_t sRepeats;
 
 const byte ledPins[] = { 10, 5, 6, A1, A2 };       // an array of pin numbers too which LEDs are attached
 const byte ledPinCount = 3;
-byte ledMode[] = { ON, OFF, OFF };
+LedMode ledMode[] = { on, off, off };
 unsigned long fastblinkPrevMillis[] = { 0, 0, 0, 0 };   // will store last time LED was updated
 unsigned long blinkPrevMillis[] = { 0, 0, 0, 0 };       // will store last time LED was updated
 unsigned long currentMillis = 0;
@@ -318,28 +317,28 @@ void loop() {
 void transitionTo_RELAY_SIGNAL_ON() {
   // read codes from EEEPROM
   // Enable IR LED
-  setLedModes(ON, OFF, OFF);
+  setLedModes(on, off, off);
   myState = RELAY_SIGNAL_ON;
 }
 
 void transitionTo_RELAY_SIGNAL_OFF() {
   // Disable IR LED
-  setLedModes(OFF, OFF, OFF);
+  setLedModes(off, off, off);
   myState = RELAY_SIGNAL_OFF;
 }
 
 void transitionTo_LEARN_IR_RELAY_TOGGLE() {
-  setLedModes(FASTBLINK, OFF, OFF);
+  setLedModes(fastBlink, off, off);
   myState = LEARN_IR_RELAY_TOGGLE;
 }
 
 void transitionTo_LEARN_IR_VOL_UP() {
-  setLedModes(OFF, FASTBLINK, OFF);
+  setLedModes(off, fastBlink, off);
   myState = LEARN_IR_VOL_UP;
 }
 
 void transitionTo_LEARN_IR_VOL_DOWN() {
-  setLedModes(OFF, OFF, FASTBLINK);
+  setLedModes(off, off, fastBlink);
   myState = LEARN_IR_VOL_DOWN;
 }
 
@@ -549,19 +548,19 @@ void buttonLongPress() {
 void updateLeds() { // call in loop() to update the connected LEDs as set in ledMode[]
   for (byte thisLed = 0; thisLed < ledPinCount; thisLed++) {
     switch (ledMode[thisLed]) {
-      case OFF:
+      case off:
         digitalWrite(ledPins[thisLed], LOW);
         break;
-      case ON:
+      case on:
         digitalWrite(ledPins[thisLed], HIGH);
         break;
-      case FASTBLINK:
+      case fastBlink:
         if (currentMillis - fastblinkPrevMillis[thisLed] >= ledFastBlinkInterval) {
           digitalWrite(ledPins[thisLed], ledState[thisLed] = !ledState[thisLed]);
           fastblinkPrevMillis[thisLed] = currentMillis;
         }
         break;
-      case BLINK:
+      case blink:
         if (currentMillis - blinkPrevMillis[thisLed] >= ledSlowBlinkInterval) {
           digitalWrite(ledPins[thisLed], ledState[thisLed] = !ledState[thisLed]);
           blinkPrevMillis[thisLed] = currentMillis;
@@ -570,7 +569,7 @@ void updateLeds() { // call in loop() to update the connected LEDs as set in led
       //
       // The following three burst modes might become useful if we'll need to allow setting a multiplier. Otherwise
       // they are Siluino legacy.
-      case ONCE:
+      case once:
         ledBurstPatternCell = (currentMillis / 50 % 20);
         if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed]) {
           prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
@@ -580,7 +579,7 @@ void updateLeds() { // call in loop() to update the connected LEDs as set in led
           }
         }
         break;
-      case TWICE:
+      case twice:
         ledBurstPatternCell = (currentMillis / 50 % 20);
         if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed]) {
           prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
@@ -590,7 +589,7 @@ void updateLeds() { // call in loop() to update the connected LEDs as set in led
           }
         }
         break;
-      case THRICE:
+      case thrice:
         ledBurstPatternCell = (currentMillis / 50 % 20);
         if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed]) {
           prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
@@ -606,7 +605,8 @@ void updateLeds() { // call in loop() to update the connected LEDs as set in led
   }
 }
 
-void setLedModes(byte newSettingsLedMode, byte newVolDownLedMode, byte newVolUpLedMode) { // writes individual set LED modes to a the LED mode array
+// writes individual set LED modes to a the LED mode array
+void setLedModes(LedMode newSettingsLedMode, LedMode newVolDownLedMode, LedMode newVolUpLedMode) {
   ledMode[0] = newSettingsLedMode;
   ledMode[1] = newVolDownLedMode;
   ledMode[2] = newVolUpLedMode;
