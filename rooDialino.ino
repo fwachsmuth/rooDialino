@@ -2,9 +2,24 @@
     Expects pulses on Pin 17/27 of the Raspi running rooExtend, requiring rooxtend 2.3.x or later.
 
     Todo:
-    - increase the IR power by using 2 or 3 IR diodes in series. One diode requires 1.1 to 1.5 volt so we can supply 3 @ 5V, 10-50 Ohm (test)
-    - Test if we can live with 3.3V pulses (or need to go down to 2 LEDs. Or need a Transistor or Schmitt Trigger
-    - Convert to a table based FSM (à la "Implementierung Einer Finite State Machine V1.1.pdf")
+
+    Todo (PCB):
+    - Label connectors
+    - Power LED
+    - Branding
+    - OE an U3 correct?
+    - C11 näher an U3
+    - C2 und C8 plus markieren (Footprint nicht Tantal!)
+    - Are the footprints from the datasheet defined as top view or bottom view?
+    - Test POints for inaccessible nets?
+    - Place SN#
+    
+    
+
+    
+    
+    
+    
 
     Notes:
     - The default software generated PWM has problems on AVR running with 8 MHz. The PWM frequency is around 30 instead of 38 kHz and RC6 is not reliable.
@@ -21,6 +36,7 @@
     https://support.jlcpcb.com/article/84-how-to-generate-the-bom-and-centroid-file-from-kicad
     https://yaqwsx.github.io/jlcparts/#/
     https://ravikiranb.com/projects/kicad-rpiz-uhat-template/
+    https://pcbchecklist.com/
 
     FSM as UML:
     https://lucid.app/publicSegments/view/7cfc8020-8e97-4eba-ac17-6506d2f960f2/image.png
@@ -83,6 +99,17 @@
 #define BUTTON_UP          14
 #define BUTTON_DEBOUNCE2   15
 #define BUTTON_IGNOREDOWN  16
+
+enum ButtonState {
+  idle,
+  down,
+  debounce1,
+  wait,
+  up,
+  debounce2,
+  ignoredown,
+};
+
 
 // Settings Modes
 // Intended to step sequentially through various settings. This leaves the normal FSM.
@@ -160,8 +187,8 @@ unsigned long lastIRreceivedMillis = millis();
 // current states
 // byte settingsButtonState = 0;
 byte myState = RELAY_SIGNAL_ON;
+ButtonState buttonState = idle;
 byte prevState;
-byte buttonState = BUTTON_IDLE;
 byte prevButtonState;
 byte learnState;
 
@@ -173,6 +200,7 @@ void volDownISR() {
 void volUpISR() {
   volSteps++;
 }
+
 
 void setup() {
   //  buttonState = BUTTON_IDLE;
@@ -288,6 +316,7 @@ void loop() {
 
 }
 
+
 // ****************************************************************************************************************
 
 void transitionTo_RELAY_SIGNAL_ON() {
@@ -320,49 +349,49 @@ void transitionTo_LEARN_IR_VOL_DOWN() {
 
 void checkButton() { // call in loop(). This calls buttonLongPress() and buttonShortPress().
 
-  // Debug Output below. Comment out if not debugging
-//    if (buttonState != prevButtonState) {
-//      Serial.print("Button: ");
-//      Serial.println(buttonState);
-//      prevButtonState = buttonState;
-//    }
+// Debug Output below. Comment out if not debugging
+    if (buttonState != prevButtonState) {
+      Serial.print("Button: ");
+      Serial.println(buttonState);
+      prevButtonState = buttonState;
+    }
 
   switch (buttonState) {
-    case BUTTON_IDLE:
+    case idle:
       if (digitalRead(BUTTON_PIN) == LOW) {
-        buttonState = BUTTON_DOWN;
+        buttonState = down;
       }
       break;
-    case BUTTON_DOWN:
+    case down:
       buttonDownMillis = currentMillis;
-      buttonState = BUTTON_DEBOUNCE1;
+      buttonState = debounce1;
       break;
-    case BUTTON_DEBOUNCE1:
-      if (currentMillis - buttonDownMillis >= buttonDebounceInterval) buttonState = BUTTON_WAIT;
+    case debounce1:
+      if (currentMillis - buttonDownMillis >= buttonDebounceInterval) buttonState = wait;
       break;
-    case BUTTON_WAIT:
+    case wait:
       if (digitalRead(BUTTON_PIN) == HIGH) {
-        buttonState = BUTTON_UP;
+        buttonState = up;
       } else if (currentMillis >= longPressLength + buttonDownMillis) { // This will not work for 3 seconds every 50 days and 70 minutes, but who cares
         buttonLongPress();
-        buttonState = BUTTON_IGNOREDOWN;
+        buttonState = ignoredown;
       }
       break;
-    case BUTTON_IGNOREDOWN:
-      if (digitalRead(BUTTON_PIN) == HIGH) buttonState = BUTTON_DEBOUNCE2;
+    case ignoredown:
+      if (digitalRead(BUTTON_PIN) == HIGH) buttonState = debounce2;
       break;
-    case BUTTON_UP:
+    case up:
       buttonUpMillis = currentMillis;
       buttonPressLength = buttonUpMillis - buttonDownMillis;
-      buttonState = BUTTON_DEBOUNCE2;
+      buttonState = debounce2;
       if (buttonPressLength < longPressLength) {
         buttonShortPress();
       } else {
         buttonLongPress();
       }
       break;
-    case BUTTON_DEBOUNCE2:
-      if (currentMillis - buttonUpMillis >= buttonDebounceInterval) buttonState = BUTTON_IDLE;
+    case debounce2:
+      if (currentMillis - buttonUpMillis >= buttonDebounceInterval) buttonState = idle;
       break;
   }
 }
