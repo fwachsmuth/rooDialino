@@ -94,24 +94,17 @@
 // Button States. This is (was) for software debounce. An RC pair does the job much easier
 // Short presses go from state 10 to 15
 // Long presses go from 10 to 13 and then eventually to 16 (until letting go, which leds to 15 + 10)
-//#define BUTTON_IDLE        10
-//#define BUTTON_DOWN        11
-//#define BUTTON_DEBOUNCE1   12
-//#define BUTTON_WAIT        13
-//#define BUTTON_UP          14
-//#define BUTTON_DEBOUNCE2   15
-//#define BUTTON_IGNOREDOWN  16
 
 enum ButtonState {
   idle = 0,
   down = 1,
-  debounce1 = 2,
-  wait = 3,
+  debounceDown = 2,
+  held = 3,
   up = 4,
-  debounce2 = 5,
-  ignoredown = 6,
+  debounceUp = 5,
+  longPress = 6,
 };
-const char* buttonStateStr[] = {"Idle", "Down", "Debounce 1", "Wait", "Up", "Debounce 2", "Ignore down"};
+const char* buttonStateStr[] = {"Idle", "Down", "Debounce Down", "Held", "Up", "Debounce Up", "Longpress"};
 
 
 // Settings Modes
@@ -369,34 +362,37 @@ void checkButton() { // call in loop(). This calls buttonLongPress() and buttonS
       break;
     case down:
       buttonDownMillis = currentMillis;
-      buttonState = debounce1;
+      buttonState = debounceDown;
       break;
-    case debounce1:
-      if (currentMillis - buttonDownMillis >= buttonDebounceInterval) buttonState = wait;
+    case debounceDown:
+      if (currentMillis - buttonDownMillis >= buttonDebounceInterval) buttonState = held;
       break;
-    case wait:
+    case held:
       if (digitalRead(BUTTON_PIN) == HIGH) {
         buttonState = up;
       } else if (currentMillis >= longPressLength + buttonDownMillis) { // This will not work for 3 seconds every 50 days and 70 minutes, but who cares
         buttonLongPress();
-        buttonState = ignoredown;
+        buttonState = longPress;
       }
-      break;
-    case ignoredown:
-      if (digitalRead(BUTTON_PIN) == HIGH) buttonState = debounce2;
       break;
     case up:
       buttonUpMillis = currentMillis;
       buttonPressLength = buttonUpMillis - buttonDownMillis;
-      buttonState = debounce2;
+      buttonState = debounceUp;
       if (buttonPressLength < longPressLength) {
         buttonShortPress();
       } else {
         buttonLongPress();
       }
       break;
-    case debounce2:
+    case debounceUp:
       if (currentMillis - buttonUpMillis >= buttonDebounceInterval) buttonState = idle;
+      break;
+    case longPress:
+      if (digitalRead(BUTTON_PIN) == HIGH) {
+        buttonUpMillis = currentMillis;
+        buttonState = debounceUp;
+      }
       break;
   }
 }
