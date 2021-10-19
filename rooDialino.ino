@@ -68,6 +68,8 @@
 #include <Arduino.h>
 #include "PinDefinitionsAndMore.h"
 
+#define DEBUG
+
 #define IR_RECEIVE_PIN      7 //  Overwriting IR Pins to free up 2/3 for Interrupts
 #define IR_SEND_PIN         8
 
@@ -92,23 +94,24 @@
 // Button States. This is (was) for software debounce. An RC pair does the job much easier
 // Short presses go from state 10 to 15
 // Long presses go from 10 to 13 and then eventually to 16 (until letting go, which leds to 15 + 10)
-#define BUTTON_IDLE        10
-#define BUTTON_DOWN        11
-#define BUTTON_DEBOUNCE1   12
-#define BUTTON_WAIT        13
-#define BUTTON_UP          14
-#define BUTTON_DEBOUNCE2   15
-#define BUTTON_IGNOREDOWN  16
+//#define BUTTON_IDLE        10
+//#define BUTTON_DOWN        11
+//#define BUTTON_DEBOUNCE1   12
+//#define BUTTON_WAIT        13
+//#define BUTTON_UP          14
+//#define BUTTON_DEBOUNCE2   15
+//#define BUTTON_IGNOREDOWN  16
 
 enum ButtonState {
-  idle,
-  down,
-  debounce1,
-  wait,
-  up,
-  debounce2,
-  ignoredown,
+  idle = 0,
+  down = 1,
+  debounce1 = 2,
+  wait = 3,
+  up = 4,
+  debounce2 = 5,
+  ignoredown = 6,
 };
+const char* buttonStateStr[] = {"Idle", "Down", "Debounce 1", "Wait", "Up", "Debounce 2", "Ignore down"};
 
 
 // Settings Modes
@@ -349,12 +352,14 @@ void transitionTo_LEARN_IR_VOL_DOWN() {
 
 void checkButton() { // call in loop(). This calls buttonLongPress() and buttonShortPress().
 
+#ifdef DEBUG
 // Debug Output below. Comment out if not debugging
     if (buttonState != prevButtonState) {
       Serial.print("Button: ");
-      Serial.println(buttonState);
+      Serial.println(buttonStateStr[buttonState]);
       prevButtonState = buttonState;
     }
+#endif
 
   switch (buttonState) {
     case idle:
