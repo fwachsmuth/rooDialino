@@ -4,17 +4,11 @@
     Todo:
 
     Todo (PCB):
-    - Label connectors
-    - Power LED
-    - Branding
-    - OE an U3 correct?
     - C11 näher an U3
-    - C2 und C8 plus markieren (Footprint nicht Tantal!)
     - Are the footprints from the datasheet defined as top view or bottom view?
-    - Test POints for inaccessible nets?
-    - Place SN#
-    
-    
+    - Test Points for inaccessible nets?
+    - Panel by JLCPCB? Then remove SN    
+    - IRX pinout?
 
     
     
