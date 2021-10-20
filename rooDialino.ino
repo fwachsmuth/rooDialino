@@ -4,8 +4,6 @@
     Todo:
 
     Todo (PCB):
-    - C11 näher an U3
-    - Are the footprints from the datasheet defined as top view or bottom view?
     - Test Points for inaccessible nets?
     - Panel by JLCPCB? Then remove SN    
     - IRX pinout?
