@@ -4,9 +4,11 @@
     Todo:
 
     Todo (PCB):
-    - Panel by JLCPCB? Then remove SN    
+    - Panel by JLCPCB? Then remove SN. Or try https://github.com/yaqwsx/KiKit
+    - Label IRX Pins 
+    - Rewire smaller components 
+    - Warn about double 5V via FTDI
 
-    - Warn about double 5V via FTDI (Jumper?)
     - Flip idea:
       - Flip 2x20 connector side
       - Mount IR LEDs (THT) via backside
