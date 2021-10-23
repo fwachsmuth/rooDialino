@@ -7,9 +7,14 @@
     - Test Points for inaccessible nets?
     - Panel by JLCPCB? Then remove SN    
     - IRX pinout?
-
-    
-    
+    - Pull OE via 10k to high only
+    - Warn about double 5V via FTDI (Jumper?)
+    - Flip idea:
+      - Flip 2x20 connector side
+      - Mount IR LEDs (THT) via backside
+      - Mount IRX (THT) on the backside
+      - Do LEDs and Pushbutton for reverse mounting (via Holes) exist?
+      - Smaller cap or THT Ca needed
     
     
 
@@ -194,7 +199,7 @@ void setup() {
 
   pinMode(PIN2, INPUT_PULLUP);
   pinMode(PIN3, INPUT_PULLUP);
-  pinMode(PIN3, INPUT_PULLUP);
+  //  pinMode(PIN3, INPUT_PULLUP);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   for (int thisLed = 0; thisLed < ledPinCount; thisLed++) pinMode(ledPins[thisLed], OUTPUT);
 
