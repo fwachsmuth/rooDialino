@@ -674,19 +674,8 @@ F 3 "" H 3950 7350 50  0001 C CNN
 	1    3950 7350
 	1    0    0    -1  
 $EndComp
-Text Label 3950 6400 0    50   ~ 0
+Text Label 3950 6300 0    50   ~ 0
 IRRCV
-$Comp
-L Connector_Generic:Conn_01x03 J4
-U 1 1 61933FD4
-P 3200 6500
-F 0 "J4" H 3100 6350 50  0000 C CNN
-F 1 "2nd IRX" H 3100 6700 50  0000 C CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" H 3200 6500 50  0001 C CNN
-F 3 "~" H 3200 6500 50  0001 C CNN
-	1    3200 6500
-	-1   0    0    -1  
-$EndComp
 $Comp
 L Connector_Generic:Conn_02x20_Odd_Even J1
 U 1 1 61952DD9
@@ -1531,24 +1520,12 @@ F 3 "" H 3650 6200 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	3400 6900 3450 6900
-Wire Wire Line
-	3450 6900 3450 6600
-Wire Wire Line
-	3450 6600 3400 6600
-Wire Wire Line
 	3400 7300 3650 7300
-Wire Wire Line
-	3950 7300 3950 6500
-Wire Wire Line
-	3950 6500 3400 6500
 Wire Wire Line
 	3950 7300 3950 7350
 Connection ~ 3950 7300
 Wire Wire Line
 	3400 7100 3500 7100
-Wire Wire Line
-	3500 6400 3400 6400
 $Comp
 L Device:CP_Small C11
 U 1 1 6188FFFB
@@ -1562,7 +1539,7 @@ F 4 "C7171" H 3650 7100 50  0001 C CNN "LCSC"
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	3500 6400 3500 7100
+	3500 6300 3500 7100
 Wire Wire Line
 	3650 7200 3650 7300
 Connection ~ 3650 7300
@@ -1571,14 +1548,35 @@ Wire Wire Line
 Wire Wire Line
 	3650 7000 3650 6900
 Wire Wire Line
-	3650 6900 3450 6900
-Connection ~ 3450 6900
-Wire Wire Line
 	3650 6900 3650 6850
 Connection ~ 3650 6900
 Wire Wire Line
-	3500 6400 3950 6400
-Connection ~ 3500 6400
+	3500 6300 3950 6300
 Wire Wire Line
-	3650 6200 3650 6550
+	3650 6200 3650 6500
+Wire Wire Line
+	3400 6900 3650 6900
+$Comp
+L Connector_Generic:Conn_01x03 J4
+U 1 1 61933FD4
+P 3200 6400
+F 0 "J4" H 3200 6200 50  0000 C CNN
+F 1 "2nd IRX" H 3250 6600 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" H 3200 6400 50  0001 C CNN
+F 3 "~" H 3200 6400 50  0001 C CNN
+	1    3200 6400
+	-1   0    0    -1  
+$EndComp
+Wire Wire Line
+	3400 6300 3500 6300
+Connection ~ 3500 6300
+Wire Wire Line
+	3400 6400 3950 6400
+Wire Wire Line
+	3950 6400 3950 7300
+Wire Wire Line
+	3400 6500 3650 6500
+Connection ~ 3650 6500
+Wire Wire Line
+	3650 6500 3650 6550
 $EndSCHEMATC
