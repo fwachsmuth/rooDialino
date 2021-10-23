@@ -4,10 +4,8 @@
     Todo:
 
     Todo (PCB):
-    - Test Points for inaccessible nets?
     - Panel by JLCPCB? Then remove SN    
-    - IRX pinout?
-    - Pull OE via 10k to high only
+
     - Warn about double 5V via FTDI (Jumper?)
     - Flip idea:
       - Flip 2x20 connector side
@@ -15,7 +13,12 @@
       - Mount IRX (THT) on the backside
       - Do LEDs and Pushbutton for reverse mounting (via Holes) exist?
       - Smaller cap or THT Ca needed
-    
+
+    Todo (Code):
+    - ifdebug um die Serial.writes
+    - Up/Down Status stimmen nicht
+    - Support Serial Interface
+    - New Learn Modes 
     
 
     Notes:

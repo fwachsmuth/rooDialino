@@ -241,7 +241,7 @@ Text Label 3250 850  2    50   ~ 0
 GNDD
 Text Label 3250 950  2    50   ~ 0
 GNDD
-Text Label 3250 1050 2    50   ~ 0
+Text Label 2800 1050 2    50   ~ 0
 5V
 Text Label 3250 1150 2    50   ~ 0
 RX5
@@ -270,7 +270,7 @@ Wire Wire Line
 Wire Wire Line
 	3250 1150 3300 1150
 Wire Wire Line
-	3250 1050 3300 1050
+	3100 1050 3300 1050
 Wire Wire Line
 	3250 950  3300 950 
 Wire Wire Line
@@ -661,71 +661,28 @@ Wire Wire Line
 	5400 900  5400 1150
 Connection ~ 5050 900 
 $Comp
-L Interface_Optical:TSOP312xx U2
-U 1 1 61922DF7
-P 3600 6950
-F 0 "U2" H 3588 7375 50  0000 C CNN
-F 1 "TSOP312xx" H 3588 7284 50  0000 C CNN
-F 2 "OptoDevice:Vishay_MINICAST-3Pin" H 3550 6575 50  0001 C CNN
-F 3 "http://www.vishay.com/docs/82492/tsop312.pdf" H 4250 7250 50  0001 C CNN
-	1    3600 6950
-	1    0    0    -1  
-$EndComp
-$Comp
 L power:GNDD #PWR015
 U 1 1 619248C3
-P 4000 7250
-F 0 "#PWR015" H 4000 7000 50  0001 C CNN
-F 1 "GNDD" H 4000 7100 50  0000 C CNN
-F 2 "" H 4000 7250 50  0001 C CNN
-F 3 "" H 4000 7250 50  0001 C CNN
-	1    4000 7250
+P 3950 7350
+F 0 "#PWR015" H 3950 7100 50  0001 C CNN
+F 1 "GNDD" H 3950 7200 50  0000 C CNN
+F 2 "" H 3950 7350 50  0001 C CNN
+F 3 "" H 3950 7350 50  0001 C CNN
+	1    3950 7350
 	1    0    0    -1  
 $EndComp
-$Comp
-L power:+5V #PWR014
-U 1 1 6192500D
-P 4000 6600
-F 0 "#PWR014" H 4000 6450 50  0001 C CNN
-F 1 "+5V" H 3850 6650 50  0000 C CNN
-F 2 "" H 4000 6600 50  0001 C CNN
-F 3 "" H 4000 6600 50  0001 C CNN
-	1    4000 6600
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	4000 6600 4000 6750
-Wire Wire Line
-	4000 7150 4000 7250
-Text Label 4150 6600 0    50   ~ 0
+Text Label 3950 6400 0    50   ~ 0
 IRRCV
-Wire Wire Line
-	4300 7050 4300 7150
-Wire Wire Line
-	4300 7150 4000 7150
-Connection ~ 4000 7150
-Wire Wire Line
-	4300 6850 4300 6750
-Connection ~ 4000 6750
-Wire Wire Line
-	4000 6950 4150 6950
-Wire Wire Line
-	4000 6750 4300 6750
-Wire Wire Line
-	4150 6600 4150 6950
-Connection ~ 4150 6950
-Wire Wire Line
-	4150 6950 4300 6950
 $Comp
 L Connector_Generic:Conn_01x03 J4
 U 1 1 61933FD4
-P 4500 6950
-F 0 "J4" H 4500 7150 50  0000 C CNN
-F 1 "IR Receiver" H 4650 6700 50  0000 C CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" H 4500 6950 50  0001 C CNN
-F 3 "~" H 4500 6950 50  0001 C CNN
-	1    4500 6950
-	1    0    0    1   
+P 3200 6500
+F 0 "J4" H 3100 6350 50  0000 C CNN
+F 1 "2nd IRX" H 3100 6700 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" H 3200 6500 50  0001 C CNN
+F 3 "~" H 3200 6500 50  0001 C CNN
+	1    3200 6500
+	-1   0    0    -1  
 $EndComp
 $Comp
 L Connector_Generic:Conn_02x20_Odd_Even J1
@@ -983,7 +940,7 @@ NoConn ~ 1750 6650
 NoConn ~ 1750 6750
 Wire Wire Line
 	1800 5750 1950 5750
-Text Label 6150 6700 0    50   ~ 0
+Text Label 5700 6700 0    50   ~ 0
 BTTN
 Text Label 1100 6250 2    50   ~ 0
 GPIO5
@@ -1518,10 +1475,107 @@ Wire Wire Line
 	2450 1650 2450 1800
 Connection ~ 2450 1800
 Wire Wire Line
-	5550 6700 6150 6700
+	5550 6700 5700 6700
 Wire Wire Line
 	5550 4250 5550 4150
 Wire Wire Line
 	5550 4150 5900 4150
 Connection ~ 5900 4150
+$Comp
+L Jumper:SolderJumper_2_Open JP1
+U 1 1 61860523
+P 2950 1050
+F 0 "JP1" H 2900 1150 50  0000 C CNN
+F 1 "SolderJumper_2_Open" H 2950 1164 50  0001 C CNN
+F 2 "" H 2950 1050 50  0001 C CNN
+F 3 "~" H 2950 1050 50  0001 C CNN
+	1    2950 1050
+	1    0    0    -1  
+$EndComp
+$Comp
+L Interface_Optical:TSOP348xx U2
+U 1 1 6174D498
+P 3000 7100
+F 0 "U2" H 2950 7500 50  0000 C CNN
+F 1 "TSOP34838" H 2950 7400 50  0000 C CNN
+F 2 "OptoDevice:Vishay_MOLD-3Pin" H 2950 6725 50  0001 C CNN
+F 3 "https://datasheet.lcsc.com/lcsc/1810171210_Vishay-Intertech-TSOP34838_C44620.pdf" H 3650 7400 50  0001 C CNN
+F 4 "C44620" H 3000 7100 50  0001 C CNN "LCSC"
+	1    3000 7100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R12
+U 1 1 61752F64
+P 3650 6700
+F 0 "R12" H 3800 6750 50  0000 C CNN
+F 1 "100" H 3800 6650 50  0000 C CNN
+F 2 "Resistor_SMD:R_0805_2012Metric" V 3580 6700 50  0001 C CNN
+F 3 "~" H 3650 6700 50  0001 C CNN
+F 4 "" H 3650 6700 50  0001 C CNN "LCSC"
+	1    3650 6700
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+5V #PWR014
+U 1 1 6192500D
+P 3650 6200
+F 0 "#PWR014" H 3650 6050 50  0001 C CNN
+F 1 "+5V" H 3750 6300 50  0000 C CNN
+F 2 "" H 3650 6200 50  0001 C CNN
+F 3 "" H 3650 6200 50  0001 C CNN
+	1    3650 6200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3400 6900 3450 6900
+Wire Wire Line
+	3450 6900 3450 6600
+Wire Wire Line
+	3450 6600 3400 6600
+Wire Wire Line
+	3400 7300 3650 7300
+Wire Wire Line
+	3950 7300 3950 6500
+Wire Wire Line
+	3950 6500 3400 6500
+Wire Wire Line
+	3950 7300 3950 7350
+Connection ~ 3950 7300
+Wire Wire Line
+	3400 7100 3500 7100
+Wire Wire Line
+	3500 6400 3400 6400
+$Comp
+L Device:CP_Small C11
+U 1 1 6188FFFB
+P 3650 7100
+F 0 "C11" H 3738 7146 50  0000 L CNN
+F 1 "10u" H 3738 7055 50  0000 L CNN
+F 2 "Capacitor_Tantalum_SMD:CP_EIA-3216-18_Kemet-A" H 3650 7100 50  0001 C CNN
+F 3 "https://datasheet.lcsc.com/lcsc/1811071223_AVX-TAJA106K016RNJ_C7171.pdf" H 3650 7100 50  0001 C CNN
+F 4 "C7171" H 3650 7100 50  0001 C CNN "LCSC"
+	1    3650 7100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3500 6400 3500 7100
+Wire Wire Line
+	3650 7200 3650 7300
+Connection ~ 3650 7300
+Wire Wire Line
+	3650 7300 3950 7300
+Wire Wire Line
+	3650 7000 3650 6900
+Wire Wire Line
+	3650 6900 3450 6900
+Connection ~ 3450 6900
+Wire Wire Line
+	3650 6900 3650 6850
+Connection ~ 3650 6900
+Wire Wire Line
+	3500 6400 3950 6400
+Connection ~ 3500 6400
+Wire Wire Line
+	3650 6200 3650 6550
 $EndSCHEMATC
