@@ -2,7 +2,7 @@
 
   (general
     (thickness 1.6)
-    (drawings 39)
+    (drawings 40)
     (tracks 809)
     (zones 0)
     (modules 51)
@@ -2398,6 +2398,9 @@
     )
   )
 
+  (gr_text "ICSP: use \nother side" (at 171.069 100.838) (layer B.SilkS) (tstamp 6172A1B3)
+    (effects (font (size 1 1) (thickness 0.15)) (justify left mirror))
+  )
   (gr_text Toggle/Learn (at 167.64 106.807) (layer F.SilkS) (tstamp 616FBD65)
     (effects (font (size 1 1) (thickness 0.15)) (justify left))
   )
