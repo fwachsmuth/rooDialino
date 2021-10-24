@@ -19,6 +19,7 @@
     - Up/Down Status stimmen nicht
     - Support Serial Interface
     - New Learn Modes 
+    - Test (and accept) different delays beteeen commands
     
 
     Notes:
@@ -37,6 +38,7 @@
     https://yaqwsx.github.io/jlcparts/#/
     https://ravikiranb.com/projects/kicad-rpiz-uhat-template/
     https://pcbchecklist.com/
+    http://nicecircuits.com/dual-port-serial-terminal/
 
     FSM as UML:
     https://lucid.app/publicSegments/view/7cfc8020-8e97-4eba-ac17-6506d2f960f2/image.png
@@ -252,6 +254,7 @@ void loop() {
   currentMillis = millis(); // needed for async (non-blocking) blinking amd button debouncing
   updateLeds();
   checkButton();            // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state.
+  checkForSerialCommand();
 
   switch (myState) {        // check if relaying was turned on or off via IR
     case RELAY_SIGNAL_ON:   // but only check when not in a LEARN mode.
@@ -341,6 +344,34 @@ void transitionTo_LEARN_IR_VOL_DOWN() {
   setLedModes(off, off, fastBlink);
   myState = LEARN_IR_VOL_DOWN;
 }
+
+bool checkForSerialCommand() {
+  if (Serial.available()) {
+    char command = Serial.read();
+    switch(command) {
+      case 'n':
+        Serial.println(F("On!"));
+      break;
+      case 'f':
+        Serial.println(F("Off!"));
+      break;
+      case 's':
+        Serial.println(F("Status"));
+      break;
+      case 'v':
+        Serial.println(F("Version!"));
+      break;
+      default:
+        Serial.println(F("Kenn ich nicht."));
+      break;
+    }
+    return true;
+  }
+  return false;
+}
+
+
+
 
 void checkButton() { // call in loop(). This calls buttonLongPress() and buttonShortPress().
 
