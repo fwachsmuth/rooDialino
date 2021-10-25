@@ -4,7 +4,6 @@
     Todo:
 
     Todo (PCB):
-    - Add Tooling Holes: https://support.jlcpcb.com/article/92-how-to-add-tooling-holes-for-smt-assembly-order
     - Buchse für IR Extender?
 
     - Flip idea:
@@ -39,6 +38,8 @@
     https://ravikiranb.com/projects/kicad-rpiz-uhat-template/
     https://pcbchecklist.com/
     http://nicecircuits.com/dual-port-serial-terminal/
+    https://github.com/daniel5151/surface-dial-linux
+    https://www.reddit.com/r/SurfaceLinux/comments/eqk22k/surface_dial_on_linux/
 
     FSM as UML:
     https://lucid.app/publicSegments/view/7cfc8020-8e97-4eba-ac17-6506d2f960f2/image.png
@@ -213,13 +214,16 @@ void setup() {
 
   Serial.begin(115200);
   // Just to know which program is running on my Arduino
+#ifdef DEBUG
   Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
-
+#endif
   IrSender.begin(IR_SEND_PIN, ENABLE_LED_FEEDBACK); // Specify send pin and enable feedback LED at default feedback LED pin
   IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK); // Start the receiver, enable feedback LED
 
+#ifdef DEBUG
   Serial.print(F("Ready to send IR signals at pin "));
   Serial.println(IR_SEND_PIN);
+#endif
 
 #if defined(USE_SOFT_SEND_PWM) && !defined(ESP32) // for esp32 we use PWM generation by hw_timer_t for each pin
   /*
@@ -227,6 +231,7 @@ void setup() {
   */
   IrSender.enableIROut(38);
 
+#ifdef DEBUG
   Serial.print(F("Send signal mark duration is "));
   Serial.print(IrSender.periodOnTimeMicros);
   Serial.print(F(" us, pulse correction is "));
@@ -234,6 +239,7 @@ void setup() {
   Serial.print(F(" ns, total period is "));
   Serial.print(IrSender.periodTimeMicros);
   Serial.println(F(" us"));
+#endif
 #endif
 
   if (!readLearnedIRCodesFromEEPROM()) {
@@ -246,8 +252,10 @@ void setup() {
 void loop() {
   // Debug Code below
   if (myState != prevState) {
+#ifdef DEBUG
     Serial.print("Mode: ");
     Serial.println(myState);
+#endif
     prevState = myState;
   }
 
@@ -274,16 +282,20 @@ void loop() {
       // TODO: turn off recever in these ifs... IrReceiver.stop();
       if (volSteps > 0) {
         sendIRCode(IR_VOL_UP);
-        Serial.print(volSteps);
         volSteps--;
+#ifdef DEBUG
+        Serial.print(volSteps);
         Serial.println(" Up");
+#endif
         delay(DELAY_AFTER_SEND);
       }
       if (volSteps < 0) {
         sendIRCode(IR_VOL_DOWN);
-        Serial.print(volSteps);
         volSteps++;
+#ifdef DEBUG
+        Serial.print(volSteps);
         Serial.println(" Down");
+#endif
         delay(DELAY_AFTER_SEND);      }
       // TODO: turn rrecever back on after these ifs... IrReceiver.resume();
       break;
@@ -350,19 +362,29 @@ bool checkForSerialCommand() {
     char command = Serial.read();
     switch(command) {
       case 'n':
+#ifdef DEBUG
         Serial.println(F("On!"));
+#endif
       break;
       case 'f':
+#ifdef DEBUG
         Serial.println(F("Off!"));
+#endif
       break;
       case 's':
+#ifdef DEBUG
         Serial.println(F("Status"));
+#endif
       break;
       case 'v':
+#ifdef DEBUG
         Serial.println(F("Version!"));
+#endif
       break;
       default:
+#ifdef DEBUG
         Serial.println(F("Kenn ich nicht."));
+#endif
       break;
     }
     return true;
@@ -460,7 +482,9 @@ bool saveLearnedIRCodesToEEPROM() {
   for (byte thisCode = 0; thisCode < NUMBER_OF_CODES_STORED; thisCode++) {
     EEPROM.put(eeAddress, IRCodeLearned[thisCode]);
     eeAddress = eeAddress + sizeof(IRCodeLearned[thisCode]);
+#ifdef DEBUG
     Serial.println(eeAddress);
+#endif
   }
 }
 
@@ -474,15 +498,19 @@ bool readLearnedIRCodesFromEEPROM() {
       EEPROM.get(eeAddress, IRCodeLearned[thisCode]);
       IRData thisStruct;
       EEPROM.get(eeAddress, thisStruct);
+#ifdef DEBUG
       Serial.println(thisStruct.protocol);
       Serial.println(thisStruct.address);
       Serial.println(thisStruct.command);
       Serial.println();
+#endif
       eeAddress = eeAddress + sizeof(IRCodeLearned[thisCode]);
     }
     return true;
   } else {
+#ifdef DEBUG
     Serial.println("Virgin EEPROM!");
+#endif
     return false;
   }
 }
@@ -494,14 +522,17 @@ bool learnIRCode(byte IRStructArrayIndex) {
         if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received
         received = true;
   
+#ifdef DEBUG
         Serial.print("Storing code at index ");
         Serial.println(IRStructArrayIndex);
+#endif
         IRCodeLearned[IRStructArrayIndex] = *IrReceiver.read();
         IRCodeLearned[IRStructArrayIndex].flags = 0; // clear any flags -esp. repeat- for later sending
       
+#ifdef DEBUG
         IrReceiver.printIRResultShort(&Serial);
-  
         Serial.println();
+#endif
       }
     }
     lastIRreceivedMillis = millis();
@@ -527,8 +558,10 @@ void sendIRCode(byte IRcommand) {
   IRSendData.flags = IRDATA_FLAGS_EMPTY;
 
   IrSender.write(&IRSendData, NO_REPEATS);
+#ifdef DEBUG
   Serial.print(F("Sent: "));
   printIRResultShort(&Serial, &IRSendData);
+#endif
 
 }
 
