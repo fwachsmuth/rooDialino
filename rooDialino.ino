@@ -7,19 +7,13 @@
        - Wire up I2C (Pullups, TPs) for debugging w/o SPI
 
     Todo (Code):
-    - Add Debugging via SPI https://www.gammon.com.au/forum/?id=11329
-    - Up/Down Status stimmen nicht
-    - Support Serial Interface
-    - New Learn Modes 
-    - Test (and accept) different delays beteeen commands
+      - Use Github issues instead! https://github.com/fwachsmuth/rooDialino/issues  
     
-    
-    Links:
+    Useful Links:
     https://github.com/Arduino-IRremote/Arduino-IRremote
     https://arduino-irremote.github.io/Arduino-IRremote/group__Decoder.html#ga6168e3ad4e47c657c9f3de0e5d7590b3
     https://cdn.sparkfun.com/assets/c/6/2/2/1/ProMini8MHzv2.pdf
     https://gammon.com.au/interrupts
-    https://thewanderingengineer.com/2014/08/11/arduino-pin-change-interrupts/
     https://www.mikrocontroller.net/articles/Statemachine
     http://stefanfrings.de/multithreading_arduino/index.html
     https://support.jlcpcb.com/article/84-how-to-generate-the-bom-and-centroid-file-from-kicad
@@ -83,8 +77,6 @@
 /* There is actually no LED connected to A3, in fact, A3 is NC. We just need to use a Pin !=0 to disable
 the IR Feedback LED during programming (interfers with blinking) and a Pin !=[10|11|13] during Debugging 
 via SPI. */
-
-          
 
 // LED Modes
 enum LedMode  /* for all the states an LED can have */
