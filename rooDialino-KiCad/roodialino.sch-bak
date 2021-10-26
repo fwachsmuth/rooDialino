@@ -765,17 +765,6 @@ F 4 "C1525" H 5050 1050 50  0001 C CNN "LCSC"
 	1    5050 1050
 	1    0    0    -1  
 $EndComp
-$Comp
-L Connector_Generic:Conn_01x02 J5
-U 1 1 61A1AF2A
-P 5600 1600
-F 0 "J5" H 5680 1592 50  0000 L CNN
-F 1 "IR LED" H 5680 1501 50  0000 L CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" H 5600 1600 50  0001 C CNN
-F 3 "~" H 5600 1600 50  0001 C CNN
-	1    5600 1600
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	5400 2550 5400 2300
 Wire Wire Line
@@ -794,9 +783,6 @@ Wire Wire Line
 	5350 1700 5400 1700
 Wire Wire Line
 	5400 1700 5400 1900
-Connection ~ 5400 1700
-Wire Wire Line
-	5400 1600 5400 1450
 Wire Wire Line
 	4300 1450 4300 1700
 Wire Wire Line
@@ -1579,4 +1565,18 @@ Wire Wire Line
 Connection ~ 3650 6500
 Wire Wire Line
 	3650 6500 3650 6550
+Connection ~ 5400 1700
+Wire Wire Line
+	5400 1600 5400 1450
+$Comp
+L Connector_Generic:Conn_01x02 J5
+U 1 1 61A1AF2A
+P 5600 1700
+F 0 "J5" H 5680 1692 50  0000 L CNN
+F 1 "IR LED" H 5680 1601 50  0000 L CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" H 5600 1700 50  0001 C CNN
+F 3 "~" H 5600 1700 50  0001 C CNN
+	1    5600 1700
+	1    0    0    1   
+$EndComp
 $EndSCHEMATC
