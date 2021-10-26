@@ -41,7 +41,10 @@
  * APOLLO3      11          12          5
  */
 //#define IRMP_MEASURE_TIMING // For debugging purposes.
-//
+
+// #define DISABLE_LED_FEEDBACK_FOR_RECEIVE // we have no feedback LED on the IRelay board.
+// #define IR_FEEDBACK_LED_PIN 6 // only works in TinyIRReceiver.h
+
 #if defined(ESP8266)
 #define FEEDBACK_LED_IS_ACTIVE_LOW // The LED on my board is active LOW
 #define IR_RECEIVE_PIN      14 // D5
