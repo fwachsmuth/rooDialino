@@ -4,27 +4,16 @@
     Todo:
 
     Todo (PCB):
-    - Buchse für IR Extender?
-
-    - Flip idea:
-      - Flip 2x20 connector side
-      - Mount IR LEDs (THT) via backside
-      - Mount IRX (THT) on the backside
-      - Do LEDs and Pushbutton for reverse mounting (via Holes) exist?
-      - Smaller cap or THT Ca needed
+       - Wire up I2C (Pullups, TPs) for debugging w/o SPI
 
     Todo (Code):
-    - ifdebug um die Serial.writes
+    - Add Debugging via SPI https://www.gammon.com.au/forum/?id=11329
     - Up/Down Status stimmen nicht
     - Support Serial Interface
     - New Learn Modes 
     - Test (and accept) different delays beteeen commands
     
-
-    Notes:
-    - The default software generated PWM has problems on AVR running with 8 MHz. The PWM frequency is around 30 instead of 38 kHz and RC6 is not reliable.
-      You can switch to timer PWM generation by #define SEND_PWM_BY_TIMER
-
+    
     Links:
     https://github.com/Arduino-IRremote/Arduino-IRremote
     https://arduino-irremote.github.io/Arduino-IRremote/group__Decoder.html#ga6168e3ad4e47c657c9f3de0e5d7590b3
@@ -71,7 +60,7 @@
 #include <Arduino.h>
 #include "PinDefinitionsAndMore.h"
 
-#define DEBUG
+#define DEBUG true
 
 #define IR_RECEIVE_PIN      7 //  Overwriting IR Pins to free up 2/3 for Interrupts
 #define IR_SEND_PIN         8
@@ -85,18 +74,33 @@
 #define PIN3         3
 #define BUTTON_PIN   4
 
+#define LED_RSTATE    10  // Reflects state of the IR Relay. Comment this out if SPI Debugging is enabled
+#define LED_VOL_DOWN   6  
+#define LED_VOL_UP     5
+#define LED_ROFF      15  // aka A1. Reflects learning explicit OFF codes
+#define LED_RON       16  // aka A2. Reflects learning explicit ON codes
+#define LED_NONE      A3
+/* There is actually no LED connected to A3, in fact, A3 is NC. We just need to use a Pin !=0 to disable
+the IR Feedback LED during programming (interfers with blinking) and a Pin !=[10|11|13] during Debugging 
+via SPI. */
+
+          
+
 // LED Modes
-enum LedMode {
-  off = 0,
+enum LedMode  /* for all the states an LED can have */
+{
+  off = 0,  /* force start at 0 to allow mapping debug strings in a shadow array */
   on,
   fastBlink,
   blink,
   once,
   twice,
   thrice,
+  quadruple, /* Preapring for more blink states */
+  quintuple, /* Preapring for more blink states */
 };
 
-// Button States. This is (was) for software debounce. An RC pair does the job much easier
+// Button States. This is for software debounce. 
 enum ButtonState {
   idle = 0,
   down,
@@ -108,20 +112,6 @@ enum ButtonState {
 };
 const char* buttonStateStr[] = {"Idle", "Down", "Debounce Down", "Held", "Up", "Debounce Up", "Longpress"};
 
-
-// Settings Modes
-// Intended to step sequentially through various settings. This leaves the normal FSM.
-#define SETTING_1          21
-#define SETTING_2          22
-#define SETTING_3          23
-#define SETTINGS_EXIT      24
-
-// States (Siluino)
-#define LEARN_BASENOISE    30
-#define LEARN_IR           31
-#define TIMER_SHORT        32
-#define TIMER_MID          33
-#define TIMER_LONG         34
 
 // States (rooDialino)
 #define RELAY_SIGNAL_ON       50
@@ -153,13 +143,14 @@ uint8_t sRepeats;
 
 // ******* LED things ****************************
 
-const byte ledPins[] = { 10, 5, 6, A1, A2 };       // an array of pin numbers too which LEDs are attached
-const byte ledPinCount = 3;
-LedMode ledMode[] = { on, off, off };
-unsigned long fastblinkPrevMillis[] = { 0, 0, 0, 0 };   // will store last time LED was updated
-unsigned long blinkPrevMillis[] = { 0, 0, 0, 0 };       // will store last time LED was updated
+const byte ledPins[] = { LED_RSTATE, LED_VOL_DOWN, LED_VOL_UP, LED_RON, LED_ROFF, LED_NONE} ;   // an array of pin numbers to which LEDs are attached
+const byte ledPinCount = 5;   // LED_NONE is not connected
+LedMode ledMode[] = { on, off, off, off, off };           // array of enum'd LED states. Turn them off.
+
+unsigned long fastblinkPrevMillis[] = { 0, 0, 0, 0, 0 } ; // will store last time LED was updated
+unsigned long blinkPrevMillis[] = { 0, 0, 0, 0, 0 };      // will store last time LED was updated
 unsigned long currentMillis = 0;
-int ledState[] = { LOW, LOW, LOW, LOW };                // ledState Array used to easily set the LED
+bool ledBlinkState[] = { LOW, LOW, LOW, LOW, LOW };             // ledState Array used to toggle them for blinking
 
 const unsigned int ledSlowBlinkInterval = 200;
 const unsigned int ledFastBlinkInterval = 80;
@@ -218,10 +209,11 @@ void setup() {
   Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
 #endif
   IrSender.begin(IR_SEND_PIN, ENABLE_LED_FEEDBACK); // Specify send pin and enable feedback LED at default feedback LED pin
-  IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK); // Start the receiver, enable feedback LED
+  IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK, LED_VOL_UP); // Start the receiver, enable custom feedback LED
+  FeedbackLEDControl.FeedbackLEDPin = LED_NONE;  // overwrite feedback LED as needed
 
 #ifdef DEBUG
-  Serial.print(F("Ready to send IR signals at pin "));
+      Serial.print(F("Ready to send IR signals at pin "));
   Serial.println(IR_SEND_PIN);
 #endif
 
@@ -281,6 +273,8 @@ void loop() {
     case RELAY_SIGNAL_ON:
       // TODO: turn off recever in these ifs... IrReceiver.stop();
       if (volSteps > 0) {
+        // TODO: Only set new Feeback LED Pin if it wasn't just set 
+        FeedbackLEDControl.FeedbackLEDPin = LED_VOL_UP;
         sendIRCode(IR_VOL_UP);
         volSteps--;
 #ifdef DEBUG
@@ -290,6 +284,8 @@ void loop() {
         delay(DELAY_AFTER_SEND);
       }
       if (volSteps < 0) {
+        // TODO: Only set new Feeback LED Pin if it wasn't just set
+        FeedbackLEDControl.FeedbackLEDPin = LED_VOL_DOWN;
         sendIRCode(IR_VOL_DOWN);
         volSteps++;
 #ifdef DEBUG
@@ -620,13 +616,13 @@ void updateLeds() { // call in loop() to update the connected LEDs as set in led
         break;
       case fastBlink:
         if (currentMillis - fastblinkPrevMillis[thisLed] >= ledFastBlinkInterval) {
-          digitalWrite(ledPins[thisLed], ledState[thisLed] = !ledState[thisLed]);
+          digitalWrite(ledPins[thisLed], ledBlinkState[thisLed] = !ledBlinkState[thisLed]);
           fastblinkPrevMillis[thisLed] = currentMillis;
         }
         break;
       case blink:
         if (currentMillis - blinkPrevMillis[thisLed] >= ledSlowBlinkInterval) {
-          digitalWrite(ledPins[thisLed], ledState[thisLed] = !ledState[thisLed]);
+          digitalWrite(ledPins[thisLed], ledBlinkState[thisLed] = !ledBlinkState[thisLed]);
           blinkPrevMillis[thisLed] = currentMillis;
         }
         break;
