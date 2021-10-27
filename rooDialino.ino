@@ -326,14 +326,18 @@ void loop() {
 // ****************************************************************************************************************
 
 void transitionTo_RELAY_SIGNAL_ON() {
-  // read codes from EEEPROM
-  // Enable IR LED
+  // Todo: Read codes from EEEPROM
+  // enable ISRs
+  attachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN), volDownISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(VOL_UP_PIN), volUpISR, CHANGE);
   setLedModes(on, off, off);
   myState = RELAY_SIGNAL_ON;
 }
 
 void transitionTo_RELAY_SIGNAL_OFF() {
-  // Disable IR LED
+  // disable ISRs
+  detachInterrupt(volDownISR);
+  detachInterrupt(volUpISR);
   setLedModes(off, off, off);
   myState = RELAY_SIGNAL_OFF;
 }
