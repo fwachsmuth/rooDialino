@@ -54,7 +54,7 @@
 #include <Arduino.h>
 #include "PinDefinitionsAndMore.h"
 
-#define DEBUG true
+#define DEBUG // true
 
 #define IR_RECEIVE_PIN      7 //  Overwriting IR Pins to free up 2/3 for Interrupts
 #define IR_SEND_PIN         8
@@ -64,8 +64,8 @@
 
 #define DELAY_AFTER_SEND 5  // shorter than 5 ms might make dirty signal
 
-#define PIN2         2
-#define PIN3         3
+#define VOL_DOWN_PIN         3
+#define VOL_UP_PIN         2
 #define BUTTON_PIN   4
 
 #define LED_RSTATE    10  // Reflects state of the IR Relay. Comment this out if SPI Debugging is enabled
@@ -186,14 +186,13 @@ void volUpISR() {
 void setup() {
   //  buttonState = BUTTON_IDLE;
 
-  pinMode(PIN2, INPUT_PULLUP);
-  pinMode(PIN3, INPUT_PULLUP);
-  //  pinMode(PIN3, INPUT_PULLUP);
+  pinMode(VOL_DOWN_PIN, INPUT_PULLUP);
+  pinMode(VOL_UP_PIN, INPUT_PULLUP);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   for (int thisLed = 0; thisLed < ledPinCount; thisLed++) pinMode(ledPins[thisLed], OUTPUT);
 
-  attachInterrupt(digitalPinToInterrupt(PIN2), volDownISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(PIN3), volUpISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN), volDownISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(VOL_UP_PIN), volUpISR, CHANGE);
 
   Serial.begin(115200);
   // Just to know which program is running on my Arduino
@@ -269,6 +268,10 @@ void loop() {
         FeedbackLEDControl.FeedbackLEDPin = LED_VOL_UP;
         sendIRCode(IR_VOL_UP);
         volSteps--;
+        if (volSteps == 0) // Switch back to default Feedback LED
+        {
+          FeedbackLEDControl.FeedbackLEDPin = LED_RON;
+        }
 #ifdef DEBUG
         Serial.print(volSteps);
         Serial.println(" Up");
@@ -280,11 +283,16 @@ void loop() {
         FeedbackLEDControl.FeedbackLEDPin = LED_VOL_DOWN;
         sendIRCode(IR_VOL_DOWN);
         volSteps++;
+        if (volSteps == 0) // Switch back to default Feedback LED
+        {
+          FeedbackLEDControl.FeedbackLEDPin = LED_RON;
+        }
 #ifdef DEBUG
         Serial.print(volSteps);
         Serial.println(" Down");
 #endif
-        delay(DELAY_AFTER_SEND);      }
+        delay(DELAY_AFTER_SEND);      
+      }
       // TODO: turn rrecever back on after these ifs... IrReceiver.resume();
       break;
     case RELAY_SIGNAL_OFF:
