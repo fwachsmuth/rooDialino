@@ -51,34 +51,36 @@
 
  ************************************************************************************
 */
+
 #include <Arduino.h>
 #include "PinDefinitionsAndMore.h"
-
-#define DEBUG // true
-
-#define IR_RECEIVE_PIN      7 //  Overwriting IR Pins to free up 2/3 for Interrupts
-#define IR_SEND_PIN         8
-
 #include <IRremote.h>
 #include <EEPROM.h>
 
-#define DELAY_AFTER_SEND 5  // shorter than 5 ms might make dirty signal
+#define DEBUG true          // Set to false to avoid Serial.printlns
+#define DELAY_AFTER_SEND  5  // shorter than 5 ms might make dirty signal
 
-#define VOL_DOWN_PIN         3
-#define VOL_UP_PIN         2
-#define BUTTON_PIN   4
+// Pin Naming
 
-#define LED_RSTATE    10  // Reflects state of the IR Relay. Comment this out if SPI Debugging is enabled
-#define LED_VOL_DOWN   6  
-#define LED_VOL_UP     5
-#define LED_ROFF      15  // aka A1. Reflects learning explicit OFF codes
-#define LED_RON       16  // aka A2. Reflects learning explicit ON codes
-#define LED_NONE      A3
+#define IR_RECEIVE_PIN    7 //  Overwriting IR Pins to free up 2/3 for Interrupts
+#define IR_SEND_PIN       8
+
+#define VOL_DOWN_PIN      3
+#define VOL_UP_PIN        2
+#define BUTTON_PIN        4
+
+#define LED_RSTATE       10  // Reflects state of the IR Relay. Comment this out if SPI Debugging is enabled
+#define LED_VOL_DOWN      6  
+#define LED_VOL_UP        5
+#define LED_ROFF         15  // aka A1. Reflects learning explicit OFF codes
+#define LED_RON          16  // aka A2. Reflects learning explicit ON codes
+#define LED_NONE         A3 
 /* There is actually no LED connected to A3, in fact, A3 is NC. We just need to use a Pin !=0 to disable
 the IR Feedback LED during programming (interfers with blinking) and a Pin !=[10|11|13] during Debugging 
 via SPI. */
 
-// LED Modes
+
+// State Enums
 enum LedMode  /* for all the states an LED can have */
 {
   off = 0,  /* force start at 0 to allow mapping debug strings in a shadow array */
@@ -105,14 +107,16 @@ enum ButtonState {
 const char* buttonStateStr[] = {"Idle", "Down", "Debounce Down", "Held", "Up", "Debounce Up", "Longpress"};
 
 
-// States (rooDialino)
+// States (rooDialino). Todo: Convert to enum.
 #define RELAY_SIGNAL_ON       50
 #define RELAY_SIGNAL_OFF      51
 #define LEARN_IR_RELAY_TOGGLE 52
 #define LEARN_IR_VOL_UP       53
 #define LEARN_IR_VOL_DOWN     54
+#define LEARN_IR_RELAY_ON     55
+#define LEARN_IR_RELAY_OF     56
 
-// Array indices for our IR code structs
+// Array indices for our IR code structs. Todo: Convert to enum.
 #define IR_RELAY_TOGGLE 0
 #define IR_VOL_UP       1
 #define IR_VOL_DOWN     2
