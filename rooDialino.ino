@@ -23,6 +23,7 @@
     http://nicecircuits.com/dual-port-serial-terminal/
     https://github.com/daniel5151/surface-dial-linux
     https://www.reddit.com/r/SurfaceLinux/comments/eqk22k/surface_dial_on_linux/
+    https://arduino.stackexchange.com/a/9858
 
     FSM as UML:
     https://lucid.app/publicSegments/view/7cfc8020-8e97-4eba-ac17-6506d2f960f2/image.png
@@ -54,7 +55,7 @@
 
 #include <Arduino.h>
 #include "PinDefinitionsAndMore.h"
-#include <IRremote.h>
+#include <IRremote.h> // Using library version 3.3.0
 #include <EEPROM.h>
 
 #define DEBUG true          // Set to false to avoid Serial.printlns
@@ -122,7 +123,7 @@ const char* buttonStateStr[] = {"Idle", "Down", "Debounce Down", "Held", "Up", "
 #define IR_VOL_DOWN     2
 #define NUMBER_OF_CODES_STORED  3 // array size
 
-volatile int volSteps;  // keeps track of how many pulses came in from the rooDial
+volatile int16_t volSteps;  // keeps track of how many pulses came in from the rooDial
 
 // ******* IR things ****************************
 
@@ -266,9 +267,7 @@ void loop() {
 
   switch (myState) {
     case RELAY_SIGNAL_ON:
-      // TODO: turn off recever in these ifs... IrReceiver.stop();
-      if (volSteps > 0) {
-        // TODO: Only set new Feeback LED Pin if it wasn't just set 
+      if (volSteps > 0) {   
         FeedbackLEDControl.FeedbackLEDPin = LED_VOL_UP;
         sendIRCode(IR_VOL_UP);
         volSteps--;
@@ -283,7 +282,6 @@ void loop() {
         delay(DELAY_AFTER_SEND);
       }
       if (volSteps < 0) {
-        // TODO: Only set new Feeback LED Pin if it wasn't just set
         FeedbackLEDControl.FeedbackLEDPin = LED_VOL_DOWN;
         sendIRCode(IR_VOL_DOWN);
         volSteps++;
@@ -340,8 +338,8 @@ void transitionTo_RELAY_SIGNAL_ON() {
 
 void transitionTo_RELAY_SIGNAL_OFF() {
   // disable ISRs
-  detachInterrupt(volDownISR);
-  detachInterrupt(volUpISR);
+  detachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN));
+  detachInterrupt(digitalPinToInterrupt(VOL_UP_PIN));
   setLedModes(off, off, off);
   myState = RELAY_SIGNAL_OFF;
 }
