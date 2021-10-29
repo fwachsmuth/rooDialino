@@ -60,8 +60,8 @@
 #include <IRremote.h> // Using library version 3.3.0
 #include <EEPROM.h>   // to stroe learned codes
 
-#define Debugln(a) (Serial.println(a)) 
-#define Debug(a) (Serial.print(a)) 
+#define Debugln(a) (Serial.println(a))
+#define Debug(a) (Serial.print(a))
 // #define Debugln(a)   // Declare the above Macros empty to turn off serial debug output
 // #define Debug(a)
 
@@ -71,19 +71,19 @@ const char versionNo[] = "1.0.0";
 
 /* ---------------- Pin Naming ------------------------------------------------------------------------- */
 
-#define IR_RECEIVE_PIN    7 //  Overwriting IR Pins to free up 2/3 for Interrupts
-#define IR_SEND_PIN       8
+#define IR_RECEIVE_PIN 7 //  Overwriting IR Pins to free up 2/3 for Interrupts
+#define IR_SEND_PIN 8
 
-#define VOL_DOWN_PIN      3
-#define VOL_UP_PIN        2
-#define BUTTON_PIN        4
+#define VOL_DOWN_PIN 3
+#define VOL_UP_PIN 2
+#define BUTTON_PIN 4
 
-#define LED_RSTATE       10  // Reflects state of the IR Relay. Comment this out if SPI Debugging is enabled
-#define LED_VOL_DOWN      6  
-#define LED_VOL_UP        5
-#define LED_ROFF         15  // aka A1. Reflects learning explicit OFF codes
-#define LED_RON          16  // aka A2. Reflects learning explicit ON codes
-#define LED_NONE         A3
+#define LED_RSTATE 10 // Reflects state of the IR Relay. Comment this out if SPI Debugging is enabled
+#define LED_VOL_DOWN 6
+#define LED_VOL_UP 5
+#define LED_ROFF 15 // aka A1. Reflects learning explicit OFF codes
+#define LED_RON 16  // aka A2. Reflects learning explicit ON codes
+#define LED_NONE A3
 /* There is actually no LED connected to A3, in fact, A3 is NC. We just need to use a Pin !=0 to disable
 the IR Feedback LED during programming (interfers with blinking) and a Pin !=[10|11|13] during Debugging 
 via SPI. */
@@ -99,13 +99,14 @@ enum LedMode
   once,
   twice,
   thrice,
-  quadruple, /* Preapring for more blink states */
-  quintuple, /* Preapring for more blink states */
+  quadruple, /* Preparing for more blink states */
+  quintuple, /* Preparing for more blink states */
 };
 const char *LedModeStr[] = {"Off", "On", "Fast Blink", "Blink", "Once", "Twice", "Thrice", "Quadruple", "Quintuple"};
 
-// Button States. This is for software debounce. 
-enum ButtonState {
+// Button States. This is for software debounce.
+enum ButtonState
+{
   idle = 0,
   down,
   debounceDown,
@@ -114,25 +115,24 @@ enum ButtonState {
   debounceUp,
   longPress,
 };
-const char* buttonStateStr[] = {"Idle", "Down", "Debounce Down", "Held", "Up", "Debounce Up", "Longpress"};
-
+const char *buttonStateStr[] = {"Idle", "Down", "Debounce Down", "Held", "Up", "Debounce Up", "Longpress"};
 
 // States (rooDialino). Todo: Convert to enum.
-#define RELAY_SIGNAL_ON       50
-#define RELAY_SIGNAL_OFF      51
+#define RELAY_SIGNAL_ON 50
+#define RELAY_SIGNAL_OFF 51
 #define LEARN_IR_RELAY_TOGGLE 52
-#define LEARN_IR_VOL_UP       53
-#define LEARN_IR_VOL_DOWN     54
-#define LEARN_IR_RELAY_ON     55
-#define LEARN_IR_RELAY_OFF    56
+#define LEARN_IR_VOL_UP 53
+#define LEARN_IR_VOL_DOWN 54
+#define LEARN_IR_RELAY_ON 55
+#define LEARN_IR_RELAY_OFF 56
 
 // Array indices for our IR code structs. Todo: Convert to enum.
 #define IR_RELAY_TOGGLE 0
-#define IR_VOL_UP       1
-#define IR_VOL_DOWN     2
-#define NUMBER_OF_CODES_STORED  3 // array size
+#define IR_VOL_UP 1
+#define IR_VOL_DOWN 2
+#define NUMBER_OF_CODES_STORED 3 // array size
 
-volatile int16_t volSteps;  // keeps track of how many pulses came in from the rooDial
+volatile int16_t volSteps; // keeps track of how many pulses came in from the rooDial
 
 /* ---------------- IR Things ------------------------------------------------------------------------- */
 
@@ -144,25 +144,25 @@ void sendIRCode(IRData *aIRDataToSend);
 
 /* ---------------- LED Things ------------------------------------------------------------------------ */
 
-const byte ledPins[] = { LED_RSTATE, LED_VOL_DOWN, LED_VOL_UP, LED_RON, LED_ROFF, LED_NONE} ;   // an array of pin numbers to which LEDs are attached
-const byte ledPinCount = 5;   // LED_NONE is not connected
-LedMode ledMode[] = { on, off, off, off, off };           // array of enum'd LED states
+const byte ledPins[] = {LED_RSTATE, LED_VOL_DOWN, LED_VOL_UP, LED_RON, LED_ROFF, LED_NONE}; // an array of pin numbers to which LEDs are attached
+const byte ledPinCount = 5;                                                                 // LED_NONE is not connected
+LedMode ledMode[] = {on, off, off, off, off};                                               // array of enum'd LED states
 
-unsigned long fastblinkPrevMillis[] = { 0, 0, 0, 0, 0 } ; // will store last time LED was updated
-unsigned long blinkPrevMillis[] = { 0, 0, 0, 0, 0 };      // will store last time LED was updated
+unsigned long fastblinkPrevMillis[] = {0, 0, 0, 0, 0}; // will store last time LED was updated
+unsigned long blinkPrevMillis[] = {0, 0, 0, 0, 0};     // will store last time LED was updated
 unsigned long currentMillis = 0;
-bool ledBlinkState[] = { LOW, LOW, LOW, LOW, LOW };       // ledState Array used to toggle them for blinking
+bool ledBlinkState[] = {LOW, LOW, LOW, LOW, LOW}; // ledState Array used to toggle them for blinking
 
-const unsigned int ledSlowBlinkInterval = 200;            // ms
+const unsigned int ledSlowBlinkInterval = 200; // ms
 const unsigned int ledFastBlinkInterval = 80;
 
 byte ledBurstPatternCell = 0;
-byte prevLedBurstPatternCell[] = { 0, 0, 0, 0, 0 };
+byte prevLedBurstPatternCell[] = {0, 0, 0, 0, 0};
 
 /* ---------------- Button Things --------------------------------------------------------------------- */
 
 // Button & Debounce Timing
-const unsigned long longPressLength = 3000;
+const unsigned long longPressLength = 1000;
 const unsigned int buttonDebounceInterval = 50;
 // Button Timers
 unsigned long previousButtonMillis = 0;
@@ -181,22 +181,25 @@ byte prevState;
 byte prevButtonState;
 byte learnState;
 
-
 // ISRs
-void volDownISR() {
+void volDownISR()
+{
   volSteps--;
 }
-void volUpISR() {
+void volUpISR()
+{
   volSteps++;
 }
 
 /* ---------------- Setup begins --------------------------------------------------------------------- */
 
-void setup() {
+void setup()
+{
   pinMode(VOL_DOWN_PIN, INPUT_PULLUP);
   pinMode(VOL_UP_PIN, INPUT_PULLUP);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  for (int thisLed = 0; thisLed < ledPinCount; thisLed++) pinMode(ledPins[thisLed], OUTPUT);
+  for (int thisLed = 0; thisLed < ledPinCount; thisLed++)
+    pinMode(ledPins[thisLed], OUTPUT);
 
   attachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN), volDownISR, RISING);
   attachInterrupt(digitalPinToInterrupt(VOL_UP_PIN), volUpISR, RISING);
@@ -204,9 +207,9 @@ void setup() {
   Serial.begin(115200);
   // Just to know which program is running on my Arduino
   Debugln(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
-  IrSender.begin(IR_SEND_PIN, ENABLE_LED_FEEDBACK); // Specify send pin and enable feedback LED at default feedback LED pin
+  IrSender.begin(IR_SEND_PIN, ENABLE_LED_FEEDBACK);                  // Specify send pin and enable feedback LED at default feedback LED pin
   IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK, LED_VOL_UP); // Start the receiver, enable custom feedback LED
-  FeedbackLEDControl.FeedbackLEDPin = LED_NONE;  // overwrite feedback LED as needed
+  FeedbackLEDControl.FeedbackLEDPin = LED_NONE;                      // overwrite feedback LED as needed
 
   Debug(F("Ready to send IR signals at pin "));
   Debugln(IR_SEND_PIN);
@@ -220,16 +223,16 @@ void setup() {
   Debug(F("Send signal mark duration is "));
   Debug(IrSender.periodOnTimeMicros);
   Debug(F(" us, pulse correction is "));
-  Debug((uint16_t) PULSE_CORRECTION_NANOS);
+  Debug((uint16_t)PULSE_CORRECTION_NANOS);
   Debug(F(" ns, total period is "));
   Debug(IrSender.periodTimeMicros);
   Debugln(F(" us"));
 #endif
 
-  if (!readLearnedIRCodesFromEEPROM()) {
+  if (!readLearnedIRCodesFromEEPROM())
+  {
     transitionTo_LEARN_IR_RELAY_TOGGLE(); // Seems like the EEPROM is empty. Lets learn some codes.
   }
-
 }
 
 /* ---------------- Loop begins --------------------------------------------------------------------- */
@@ -237,7 +240,8 @@ void setup() {
 void loop()
 {
   // Debug Code below
-  if (myState != prevState) {
+  if (myState != prevState)
+  {
     Debug("Mode: ");
     Debugln(myState);
     prevState = myState;
@@ -245,85 +249,94 @@ void loop()
 
   currentMillis = millis(); // needed for async (non-blocking) blinking amd button debouncing
   updateLeds();
-  checkButton();            // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state.
+  checkButton(); // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state.
   checkForSerialCommand();
 
-  switch (myState) {        // check if relaying was turned on or off via IR
-    case RELAY_SIGNAL_ON:   // but only check when not in a LEARN mode.
-      if (checkIRToggle()) {
-        transitionTo_RELAY_SIGNAL_OFF();
-      }
-      break;
-    case RELAY_SIGNAL_OFF:
-      if (checkIRToggle()) {
-        transitionTo_RELAY_SIGNAL_ON();
-      }
-      break;
-    default:
-      break;
+  switch (myState)
+  {                     // check if relaying was turned on or off via IR
+  case RELAY_SIGNAL_ON: // but only check when not in a LEARN mode.
+    if (checkIRToggle())
+    {
+      transitionTo_RELAY_SIGNAL_OFF();
+    }
+    break;
+  case RELAY_SIGNAL_OFF:
+    if (checkIRToggle())
+    {
+      transitionTo_RELAY_SIGNAL_ON();
+    }
+    break;
+  default:
+    break;
   }
 
-  switch (myState) {
-    case RELAY_SIGNAL_ON:
-      if (volSteps > 0) {   
-        FeedbackLEDControl.FeedbackLEDPin = LED_VOL_UP;
-        sendIRCode(IR_VOL_UP);
-        volSteps--;
-        if (volSteps == 0) // Switch back to default Feedback LED
-        {
-          FeedbackLEDControl.FeedbackLEDPin = LED_RON;
-        }
-        Debug(volSteps);
-        Debugln(" Up");
-        delay(DELAY_AFTER_SEND);
+  switch (myState)
+  {
+  case RELAY_SIGNAL_ON:
+    if (volSteps > 0)
+    {
+      FeedbackLEDControl.FeedbackLEDPin = LED_VOL_UP;
+      sendIRCode(IR_VOL_UP);
+      volSteps--;
+      if (volSteps == 0) // Switch back to default Feedback LED
+      {
+        FeedbackLEDControl.FeedbackLEDPin = LED_RON;
       }
-      if (volSteps < 0) {
-        FeedbackLEDControl.FeedbackLEDPin = LED_VOL_DOWN;
-        sendIRCode(IR_VOL_DOWN);
-        volSteps++;
-        if (volSteps == 0) // Switch back to default Feedback LED
-        {
-          FeedbackLEDControl.FeedbackLEDPin = LED_RON;
-        }
-        Debug(volSteps);
-        Debugln(" Down");
-        delay(DELAY_AFTER_SEND);      
+      Debug(volSteps);
+      Debugln(" Up");
+      delay(DELAY_AFTER_SEND);
+    }
+    if (volSteps < 0)
+    {
+      FeedbackLEDControl.FeedbackLEDPin = LED_VOL_DOWN;
+      sendIRCode(IR_VOL_DOWN);
+      volSteps++;
+      if (volSteps == 0) // Switch back to default Feedback LED
+      {
+        FeedbackLEDControl.FeedbackLEDPin = LED_RON;
       }
-      // TODO: turn rrecever back on after these ifs... IrReceiver.resume();
-      break;
-    case RELAY_SIGNAL_OFF:
-      // flash the LEDs to show we are seing pulses (aka rooDial is in reach but relaying is off)
-      // Might combine both cases since we want that same visual feedback while relaying too.
-      // Alternatively, let relay=off just disable the IR Pin... :)
-      break;
-    case LEARN_IR_RELAY_TOGGLE:
-      if (learnIRCode(IR_RELAY_TOGGLE)) {
-        Serial.println(F("toggle_learned"));
-        transitionTo_LEARN_IR_VOL_UP();
-      }
-      break;
-    case LEARN_IR_VOL_UP:
-      if (learnIRCode(IR_VOL_UP)) {
-        Serial.println(F("voldown_learned"));
-        transitionTo_LEARN_IR_VOL_DOWN();
-      }
-      break;
-    case LEARN_IR_VOL_DOWN:
-      if (learnIRCode(IR_VOL_DOWN)) {
-        saveLearnedIRCodesToEEPROM();
-        Serial.println(F("volup_learned"));
-        Serial.println(F("learning_complete"));
-        transitionTo_RELAY_SIGNAL_ON();
-      }
-      break;
-    default:
-      break;
+      Debug(volSteps);
+      Debugln(" Down");
+      delay(DELAY_AFTER_SEND);
+    }
+    // TODO: turn rrecever back on after these ifs... IrReceiver.resume();
+    break;
+  case RELAY_SIGNAL_OFF:
+    // flash the LEDs to show we are seing pulses (aka rooDial is in reach but relaying is off)
+    // Might combine both cases since we want that same visual feedback while relaying too.
+    // Alternatively, let relay=off just disable the IR Pin... :)
+    break;
+  case LEARN_IR_RELAY_TOGGLE:
+    if (learnIRCode(IR_RELAY_TOGGLE))
+    {
+      Serial.println(F("toggle_learned"));
+      transitionTo_LEARN_IR_VOL_UP();
+    }
+    break;
+  case LEARN_IR_VOL_UP:
+    if (learnIRCode(IR_VOL_UP))
+    {
+      Serial.println(F("voldown_learned"));
+      transitionTo_LEARN_IR_VOL_DOWN();
+    }
+    break;
+  case LEARN_IR_VOL_DOWN:
+    if (learnIRCode(IR_VOL_DOWN))
+    {
+      saveLearnedIRCodesToEEPROM();
+      Serial.println(F("volup_learned"));
+      Serial.println(F("learning_complete"));
+      transitionTo_RELAY_SIGNAL_ON();
+    }
+    break;
+  default:
+    break;
   }
 }
 
 /* ---------------- End Loop -------------------------------------------------------------------------- */
 
-void transitionTo_RELAY_SIGNAL_ON() 
+void transitionTo_RELAY_SIGNAL_ON()
 {
   // Todo: Read codes from EEEPROM
   // enable ISRs
@@ -333,7 +346,7 @@ void transitionTo_RELAY_SIGNAL_ON()
   myState = RELAY_SIGNAL_ON;
 }
 
-void transitionTo_RELAY_SIGNAL_OFF() 
+void transitionTo_RELAY_SIGNAL_OFF()
 {
   // disable ISRs
   volSteps = 0;
@@ -343,19 +356,20 @@ void transitionTo_RELAY_SIGNAL_OFF()
   myState = RELAY_SIGNAL_OFF;
 }
 
-void transitionTo_LEARN_IR_RELAY_TOGGLE() 
+void transitionTo_LEARN_IR_RELAY_TOGGLE()
 {
-  setLedModes(fastBlink, off, off, off, off);
+  setLedModes(thrice, off, off, off, off);
   myState = LEARN_IR_RELAY_TOGGLE;
 }
 
-void transitionTo_LEARN_IR_VOL_UP() 
+void transitionTo_LEARN_IR_VOL_UP()
 {
   setLedModes(off, fastBlink, off, off, off);
   myState = LEARN_IR_VOL_UP;
 }
 
-void transitionTo_LEARN_IR_VOL_DOWN() {
+void transitionTo_LEARN_IR_VOL_DOWN()
+{
   setLedModes(off, off, fastBlink, off, off);
   myState = LEARN_IR_VOL_DOWN;
 }
@@ -372,100 +386,118 @@ void transitionTo_LEARN_IR_RELAY_OFF()
   myState = LEARN_IR_RELAY_OFF;
 }
 
-bool checkForSerialCommand() {
-  if (Serial.available()) {
+bool checkForSerialCommand()
+{
+  if (Serial.available())
+  {
     char command = Serial.read();
-    switch(command) {
-      case 'n': // Turn Relay On
-        transitionTo_RELAY_SIGNAL_ON();
-        Serial.println(F("okay"));
-        break;
-      case 'f': // Turn Relay Off
-        transitionTo_RELAY_SIGNAL_OFF();
-        Serial.println(F("okay"));
-        break;
-      case 's': // Status
-        Serial.println(F("Status"));
-        break;
-      case 'v': // Version
-        Serial.println(versionNo);
-        break;
-      case 'l': // Start Learning Essential Codes
-        transitionTo_LEARN_IR_RELAY_TOGGLE();
-        break;
-      case 'L': // Start Learning Codes for Explicit Relay Control
-        break;
-      case 'x': // Exit Code Learning now
-        break;
-      default:
-        break;
+    switch (command)
+    {
+    case 'n': // Turn Relay On
+      transitionTo_RELAY_SIGNAL_ON();
+      Serial.println(F("okay"));
+      break;
+    case 'f': // Turn Relay Off
+      transitionTo_RELAY_SIGNAL_OFF();
+      Serial.println(F("okay"));
+      break;
+    case 's': // Status
+      Serial.println(F("Status"));
+      break;
+    case 'v': // Version
+      Serial.println(versionNo);
+      break;
+    case 'l': // Start Learning Essential Codes
+      transitionTo_LEARN_IR_RELAY_TOGGLE();
+      break;
+    case 'L': // Start Learning Codes for Explicit Relay Control
+      break;
+    case 'x': // Exit Code Learning now
+      break;
+    default:
+      break;
     }
     return true;
   }
   return false;
 }
 
-
-void checkButton() { // call in loop(). This calls buttonLongPress() and buttonShortPress().
-  if (buttonState != prevButtonState) {
+void checkButton()
+{ // call in loop(). This calls buttonLongPress() and buttonShortPress().
+  if (buttonState != prevButtonState)
+  {
     Debug("Button: ");
     Debugln(buttonStateStr[buttonState]);
     prevButtonState = buttonState;
   }
 
-  switch (buttonState) {
-    case idle:
-      if (digitalRead(BUTTON_PIN) == LOW) {
-        buttonState = down;
-      }
-      break;
-    case down:
-      buttonDownMillis = currentMillis;
-      buttonState = debounceDown;
-      break;
-    case debounceDown:
-      if (currentMillis - buttonDownMillis >= buttonDebounceInterval) buttonState = held;
-      break;
-    case held:
-      if (digitalRead(BUTTON_PIN) == HIGH) {
-        buttonState = up;
-      } else if (currentMillis >= longPressLength + buttonDownMillis) { // This will not work for 3 seconds every 50 days and 70 minutes, but who cares
-        buttonLongPress();
-        buttonState = longPress;
-      }
-      break;
-    case up:
+  switch (buttonState)
+  {
+  case idle:
+    if (digitalRead(BUTTON_PIN) == LOW)
+    {
+      buttonState = down;
+    }
+    break;
+  case down:
+    buttonDownMillis = currentMillis;
+    buttonState = debounceDown;
+    break;
+  case debounceDown:
+    if (currentMillis - buttonDownMillis >= buttonDebounceInterval)
+      buttonState = held;
+    break;
+  case held:
+    if (digitalRead(BUTTON_PIN) == HIGH)
+    {
+      buttonState = up;
+    }
+    else if (currentMillis >= longPressLength + buttonDownMillis)
+    { // This will not work for 3 seconds every 50 days and 70 minutes, but who cares
+      buttonLongPress();
+      buttonState = longPress;
+    }
+    break;
+  case up:
+    buttonUpMillis = currentMillis;
+    buttonPressLength = buttonUpMillis - buttonDownMillis;
+    buttonState = debounceUp;
+    if (buttonPressLength < longPressLength)
+    {
+      buttonShortPress();
+    }
+    else
+    {
+      buttonLongPress();
+    }
+    break;
+  case debounceUp:
+    if (currentMillis - buttonUpMillis >= buttonDebounceInterval)
+      buttonState = idle;
+    break;
+  case longPress:
+    if (digitalRead(BUTTON_PIN) == HIGH)
+    {
       buttonUpMillis = currentMillis;
-      buttonPressLength = buttonUpMillis - buttonDownMillis;
       buttonState = debounceUp;
-      if (buttonPressLength < longPressLength) {
-        buttonShortPress();
-      } else {
-        buttonLongPress();
-      }
-      break;
-    case debounceUp:
-      if (currentMillis - buttonUpMillis >= buttonDebounceInterval) buttonState = idle;
-      break;
-    case longPress:
-      if (digitalRead(BUTTON_PIN) == HIGH) {
-        buttonUpMillis = currentMillis;
-        buttonState = debounceUp;
-      }
-      break;
+    }
+    break;
   }
 }
 
-bool checkIRToggle() {
+bool checkIRToggle()
+{
   // see if a relay state toggle was requested
   bool received = false;
-  if (IrReceiver.decode()) {
+  if (IrReceiver.decode())
+  {
     if (IrReceiver.decodedIRData.protocol == IRCodeLearned[0].protocol &&
         IrReceiver.decodedIRData.address == IRCodeLearned[0].address &&
         IrReceiver.decodedIRData.command == IRCodeLearned[0].command)
     {
 
-      if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received, toggle the relay state
+      if (millis() - lastIRreceivedMillis > 250)
+      { // If it's been at least 1/4 second since the last IR received, toggle the relay state
         received = true;
       }
       lastIRreceivedMillis = millis();
@@ -475,26 +507,31 @@ bool checkIRToggle() {
   return received;
 }
 
-bool saveLearnedIRCodesToEEPROM() {
+bool saveLearnedIRCodesToEEPROM()
+{
   // save just learned codes to EEPROM
   int eeAddress = 0;
   const unsigned long eeMagic = 0xb007ab1e; // leave a magic mark that we have been here here before.
   EEPROM.put(eeAddress, eeMagic);
   eeAddress = eeAddress + sizeof(eeMagic);
-  for (byte thisCode = 0; thisCode < NUMBER_OF_CODES_STORED; thisCode++) {
+  for (byte thisCode = 0; thisCode < NUMBER_OF_CODES_STORED; thisCode++)
+  {
     EEPROM.put(eeAddress, IRCodeLearned[thisCode]);
     eeAddress = eeAddress + sizeof(IRCodeLearned[thisCode]);
     Debugln(eeAddress);
   }
 }
 
-bool readLearnedIRCodesFromEEPROM() {
- int eeAddress = 0;
-  unsigned long eeMagic; 
+bool readLearnedIRCodesFromEEPROM()
+{
+  int eeAddress = 0;
+  unsigned long eeMagic;
   EEPROM.get(eeAddress, eeMagic); // attempt to fetch the magic indicating that we have been here before
-  if (eeMagic == 0xb007ab1e) {
+  if (eeMagic == 0xb007ab1e)
+  {
     eeAddress = eeAddress + sizeof(eeMagic);
-    for (byte thisCode = 0; thisCode < NUMBER_OF_CODES_STORED; thisCode++) {
+    for (byte thisCode = 0; thisCode < NUMBER_OF_CODES_STORED; thisCode++)
+    {
       EEPROM.get(eeAddress, IRCodeLearned[thisCode]);
       IRData thisStruct;
       EEPROM.get(eeAddress, thisStruct);
@@ -505,19 +542,25 @@ bool readLearnedIRCodesFromEEPROM() {
       eeAddress = eeAddress + sizeof(IRCodeLearned[thisCode]);
     }
     return true;
-  } else {
+  }
+  else
+  {
     Debugln("Virgin EEPROM!");
     return false;
   }
 }
 
-bool learnIRCode(byte IRStructArrayIndex) {
+bool learnIRCode(byte IRStructArrayIndex)
+{
   bool received = false;
-    if (IrReceiver.decode()) { 
-      if (IrReceiver.decodedIRData.protocol != UNKNOWN) {  // Too much Noise from e.g. LED bulbs around to allow Raw signal recording
-        if (millis() - lastIRreceivedMillis > 250) {       // If it's been at least 1/4 second since the last IR received
+  if (IrReceiver.decode())
+  {
+    if (IrReceiver.decodedIRData.protocol != UNKNOWN)
+    { // Too much Noise from e.g. LED bulbs around to allow Raw signal recording
+      if (millis() - lastIRreceivedMillis > 250)
+      { // If it's been at least 1/4 second since the last IR received
         received = true;
-  
+
         Debug("Storing code at index ");
         Debugln(IRStructArrayIndex);
         IRCodeLearned[IRStructArrayIndex] = *IrReceiver.read();
@@ -529,12 +572,13 @@ bool learnIRCode(byte IRStructArrayIndex) {
       }
     }
     lastIRreceivedMillis = millis();
-    IrReceiver.resume();       
+    IrReceiver.resume();
   }
   return received;
 }
 
-void sendIRCode(byte IRcommand) {
+void sendIRCode(byte IRcommand)
+{
   /*
    *  Check SendDemo for more verbose documentation on the write function
    */
@@ -550,155 +594,183 @@ void sendIRCode(byte IRcommand) {
   IrSender.write(&IRSendData, NO_REPEATS);
   Debug(F("Sent: "));
   printIRResultShort(&Serial, &IRSendData);
-
 }
 
-void buttonShortPress() {
-  switch (myState) {
-    case RELAY_SIGNAL_ON:
-      transitionTo_RELAY_SIGNAL_OFF();
-      break;
-    case RELAY_SIGNAL_OFF:
-      transitionTo_RELAY_SIGNAL_ON();
-      break;
+void buttonShortPress()
+{
+  switch (myState)
+  {
+  case RELAY_SIGNAL_ON:
+    transitionTo_RELAY_SIGNAL_OFF();
+    break;
+  case RELAY_SIGNAL_OFF:
+    transitionTo_RELAY_SIGNAL_ON();
+    break;
 
-    // a short button pres skips the expected config step (to keep the prev. stored setting)
-    case LEARN_IR_RELAY_TOGGLE:
-      transitionTo_LEARN_IR_VOL_UP();
-      break;
-    case LEARN_IR_VOL_UP:
-      transitionTo_LEARN_IR_VOL_DOWN();
-      break;
-    case LEARN_IR_VOL_DOWN:
-      transitionTo_RELAY_SIGNAL_ON();
-      break;
+  // a short button pres skips the expected config step (to keep the prev. stored setting)
+  case LEARN_IR_RELAY_TOGGLE:
+    transitionTo_LEARN_IR_VOL_UP();
+    break;
+  case LEARN_IR_VOL_UP:
+    transitionTo_LEARN_IR_VOL_DOWN();
+    break;
+  case LEARN_IR_VOL_DOWN:
+    transitionTo_RELAY_SIGNAL_ON();
+    break;
 
-    default:
-      break;
+  default:
+    break;
   }
 }
 
-void buttonLongPress() {
-  switch (myState) {
-    case RELAY_SIGNAL_ON:
-    case RELAY_SIGNAL_OFF:
-      transitionTo_LEARN_IR_RELAY_TOGGLE();
-      break;
+void buttonLongPress()
+{
+  switch (myState)
+  {
+  case RELAY_SIGNAL_ON:
+  case RELAY_SIGNAL_OFF:
+    transitionTo_LEARN_IR_RELAY_TOGGLE();
+    break;
 
-    case LEARN_IR_RELAY_TOGGLE:
-    case LEARN_IR_VOL_UP:
-    case LEARN_IR_VOL_DOWN:
-      // a long button press in Settings mode should just do nuthin (so far)
-      break;
+  case LEARN_IR_RELAY_TOGGLE:
+  case LEARN_IR_VOL_UP:
+  case LEARN_IR_VOL_DOWN:
+    // a long button press in Settings mode should just do nuthin (so far)
+    break;
 
-    default:
-      break;
+  default:
+    break;
   }
 }
 
 void updateLeds() // call in loop() to update the connected LEDs as set in ledMode[]
-{ 
-  for (byte thisLed = 0; thisLed < ledPinCount; thisLed++) {
-    switch (ledMode[thisLed]) {
-      case off:
-        digitalWrite(ledPins[thisLed], LOW);
-        break;
-      case on:
-        digitalWrite(ledPins[thisLed], HIGH);
-        break;
-      case fastBlink:
-        if (currentMillis - fastblinkPrevMillis[thisLed] >= ledFastBlinkInterval) {
-          digitalWrite(ledPins[thisLed], ledBlinkState[thisLed] = !ledBlinkState[thisLed]);
-          fastblinkPrevMillis[thisLed] = currentMillis;
-        }
-        break;
-      case blink:
-        if (currentMillis - blinkPrevMillis[thisLed] >= ledSlowBlinkInterval) {
-          digitalWrite(ledPins[thisLed], ledBlinkState[thisLed] = !ledBlinkState[thisLed]);
-          blinkPrevMillis[thisLed] = currentMillis;
-        }
-        break;
-      //
-      // The following three burst modes might become useful if we'll need to allow setting a multiplier. Otherwise
-      // they are Siluino legacy.
-      case once:
-        ledBurstPatternCell = (currentMillis / 50 % 20);
-        if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed]) {
-          prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
-          switch (ledBurstPatternCell) {
-            case 0: digitalWrite(ledPins[thisLed], HIGH); break;
-            default: digitalWrite(ledPins[thisLed], LOW); break;
-          }
-        }
-        break;
-      case twice:
-        ledBurstPatternCell = (currentMillis / 50 % 20);
-        if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed]) {
-          prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
-          switch (ledBurstPatternCell) {
-            case 0: case 4: digitalWrite(ledPins[thisLed], HIGH); break;
-            default: digitalWrite(ledPins[thisLed], LOW); break;
-          }
-        }
-        break;
-      case thrice:
-        ledBurstPatternCell = (currentMillis / 50 % 20);
-        if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed]) {
-          prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
-          switch (ledBurstPatternCell) {
-            case 0: case 4: case 8: digitalWrite(ledPins[thisLed], HIGH); break;
-            default: digitalWrite(ledPins[thisLed], LOW); break;
-          }
-        }
-        break;
-      case quadruple:
-        ledBurstPatternCell = (currentMillis / 50 % 20);
-        if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
+{
+  for (byte thisLed = 0; thisLed < ledPinCount; thisLed++)
+  {
+    switch (ledMode[thisLed])
+    {
+    case off:
+      digitalWrite(ledPins[thisLed], LOW);
+      break;
+    case on:
+      digitalWrite(ledPins[thisLed], HIGH);
+      break;
+    case fastBlink:
+      if (currentMillis - fastblinkPrevMillis[thisLed] >= ledFastBlinkInterval)
+      {
+        digitalWrite(ledPins[thisLed], ledBlinkState[thisLed] = !ledBlinkState[thisLed]);
+        fastblinkPrevMillis[thisLed] = currentMillis;
+      }
+      break;
+    case blink:
+      if (currentMillis - blinkPrevMillis[thisLed] >= ledSlowBlinkInterval)
+      {
+        digitalWrite(ledPins[thisLed], ledBlinkState[thisLed] = !ledBlinkState[thisLed]);
+        blinkPrevMillis[thisLed] = currentMillis;
+      }
+      break;
+    //
+    // The following three burst modes might become useful if we'll need to allow setting a multiplier. Otherwise
+    // they are Siluino legacy.
+    case once:
+      ledBurstPatternCell = (currentMillis / 50 % 20);
+      if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
+      {
+        prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
+        switch (ledBurstPatternCell)
         {
-          prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
-          switch (ledBurstPatternCell)
-          {
-          case 0:
-          case 4:
-          case 8:
-          case 12:
-            digitalWrite(ledPins[thisLed], HIGH);
-            break;
-          default:
-            digitalWrite(ledPins[thisLed], LOW);
-            break;
-          }
+        case 0:
+          digitalWrite(ledPins[thisLed], HIGH);
+          break;
+        default:
+          digitalWrite(ledPins[thisLed], LOW);
+          break;
         }
-        break;
-      case quintuple:
-        ledBurstPatternCell = (currentMillis / 50 % 20);
-        if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
+      }
+      break;
+    case twice:
+      ledBurstPatternCell = (currentMillis / 50 % 20);
+      if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
+      {
+        prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
+        switch (ledBurstPatternCell)
         {
-          prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
-          switch (ledBurstPatternCell)
-          {
-          case 0:
-          case 4:
-          case 8:
-          case 12:
-          case 16:
-            digitalWrite(ledPins[thisLed], HIGH);
-            break;
-          default:
-            digitalWrite(ledPins[thisLed], LOW);
-            break;
-          }
+        case 0:
+        case 4:
+          digitalWrite(ledPins[thisLed], HIGH);
+          break;
+        default:
+          digitalWrite(ledPins[thisLed], LOW);
+          break;
         }
-        break;
-      default:
-        break;
+      }
+      break;
+    case thrice:
+      ledBurstPatternCell = (currentMillis / 50 % 20);
+      if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
+      {
+        prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
+        switch (ledBurstPatternCell)
+        {
+        case 0:
+        case 4:
+        case 8:
+          digitalWrite(ledPins[thisLed], HIGH);
+          break;
+        default:
+          digitalWrite(ledPins[thisLed], LOW);
+          break;
+        }
+      }
+      break;
+    case quadruple:
+      ledBurstPatternCell = (currentMillis / 50 % 20);
+      if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
+      {
+        prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
+        switch (ledBurstPatternCell)
+        {
+        case 0:
+        case 4:
+        case 8:
+        case 12:
+          digitalWrite(ledPins[thisLed], HIGH);
+          break;
+        default:
+          digitalWrite(ledPins[thisLed], LOW);
+          break;
+        }
+      }
+      break;
+    case quintuple:
+      ledBurstPatternCell = (currentMillis / 50 % 20);
+      if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
+      {
+        prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
+        switch (ledBurstPatternCell)
+        {
+        case 0:
+        case 4:
+        case 8:
+        case 12:
+        case 16:
+          digitalWrite(ledPins[thisLed], HIGH);
+          break;
+        default:
+          digitalWrite(ledPins[thisLed], LOW);
+          break;
+        }
+      }
+      break;
+    default:
+      break;
     }
   }
 }
 
 void setLedModes(LedMode newSettingsLedMode, LedMode newVolDownLedMode, LedMode newRoffLedMode, LedMode newRonLedMode, LedMode newVolUpLedMode)
 // writes individual set LED modes to a the LED mode array
-{ 
+{
   ledMode[0] = newSettingsLedMode;
   ledMode[1] = newVolDownLedMode;
   ledMode[2] = newVolUpLedMode;
