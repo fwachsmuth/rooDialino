@@ -329,6 +329,7 @@ void transitionTo_RELAY_SIGNAL_ON() {
 
 void transitionTo_RELAY_SIGNAL_OFF() {
   // disable ISRs
+  volSteps = 0;
   detachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN));
   detachInterrupt(digitalPinToInterrupt(VOL_UP_PIN));
   setLedModes(off, off, off);
@@ -431,14 +432,14 @@ bool checkIRToggle() {
   bool received = false;
   if (IrReceiver.decode()) {
     if (IrReceiver.decodedIRData.protocol == IRCodeLearned[0].protocol &&
-        IrReceiver.decodedIRData.address  == IRCodeLearned[0].address  &&
-        IrReceiver.decodedIRData.command  == IRCodeLearned[0].command) {
-    
+        IrReceiver.decodedIRData.address == IRCodeLearned[0].address &&
+        IrReceiver.decodedIRData.command == IRCodeLearned[0].command)
+    {
+
       if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received, toggle the relay state
         received = true;
       }
       lastIRreceivedMillis = millis();
-    
     }
     IrReceiver.resume();
   }
