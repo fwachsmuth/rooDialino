@@ -53,10 +53,12 @@
  ************************************************************************************
 */
 
+/* ---------------- Macros and Constants --------------------------------------------------------------- */
+
 #include <Arduino.h>
 #include "PinDefinitionsAndMore.h"
 #include <IRremote.h> // Using library version 3.3.0
-#include <EEPROM.h>
+#include <EEPROM.h>   // to stroe learned codes
 
 #define Debugln(a) (Serial.println(a)) 
 #define Debug(a) (Serial.print(a)) 
@@ -67,7 +69,7 @@ const char versionNo[] = "1.0.0";
 
 #define DELAY_AFTER_SEND 5 // shorter than 5 ms might make dirty signal
 
-// Pin Naming
+/* ---------------- Pin Naming ------------------------------------------------------------------------- */
 
 #define IR_RECEIVE_PIN    7 //  Overwriting IR Pins to free up 2/3 for Interrupts
 #define IR_SEND_PIN       8
@@ -81,16 +83,16 @@ const char versionNo[] = "1.0.0";
 #define LED_VOL_UP        5
 #define LED_ROFF         15  // aka A1. Reflects learning explicit OFF codes
 #define LED_RON          16  // aka A2. Reflects learning explicit ON codes
-#define LED_NONE         A3 
+#define LED_NONE         A3
 /* There is actually no LED connected to A3, in fact, A3 is NC. We just need to use a Pin !=0 to disable
 the IR Feedback LED during programming (interfers with blinking) and a Pin !=[10|11|13] during Debugging 
 via SPI. */
 
+/* ---------------- Many many States ------------------------------------------------------------------- */
 
-// State Enums
-enum LedMode  /* for all the states an LED can have */
-{
-  off = 0,  /* force start at 0 to allow mapping debug strings in a shadow array */
+enum LedMode
+{          /* for all the states an LED can have */
+  off = 0, /* force start at 0 to allow mapping debug strings in a shadow array */
   on,
   fastBlink,
   blink,
@@ -100,6 +102,7 @@ enum LedMode  /* for all the states an LED can have */
   quadruple, /* Preapring for more blink states */
   quintuple, /* Preapring for more blink states */
 };
+const char *LedModeStr[] = {"Off", "On", "Fast Blink", "Blink", "Once", "Twice", "Thrice", "Quadruple", "Quintuple"};
 
 // Button States. This is for software debounce. 
 enum ButtonState {
@@ -131,7 +134,7 @@ const char* buttonStateStr[] = {"Idle", "Down", "Debounce Down", "Held", "Up", "
 
 volatile int16_t volSteps;  // keeps track of how many pulses came in from the rooDial
 
-// ******* IR things ****************************
+/* ---------------- IR Things ------------------------------------------------------------------------- */
 
 struct IRData IRCodeLearned[NUMBER_OF_CODES_STORED];
 
@@ -139,12 +142,7 @@ struct IRData IRCodeLearned[NUMBER_OF_CODES_STORED];
 void storeIRCode(IRData *aIRReceivedData);
 void sendIRCode(IRData *aIRDataToSend);
 
-// TODO: Delete these
-uint16_t sAddress;
-uint8_t sCommand;
-uint8_t sRepeats;
-
-// ******* LED things ****************************
+/* ---------------- LED Things ------------------------------------------------------------------------ */
 
 const byte ledPins[] = { LED_RSTATE, LED_VOL_DOWN, LED_VOL_UP, LED_RON, LED_ROFF, LED_NONE} ;   // an array of pin numbers to which LEDs are attached
 const byte ledPinCount = 5;   // LED_NONE is not connected
@@ -161,8 +159,7 @@ const unsigned int ledFastBlinkInterval = 80;
 byte ledBurstPatternCell = 0;
 byte prevLedBurstPatternCell[] = { 0, 0, 0, 0 };
 
-
-// ******* Button things ****************************
+/* ---------------- Button Things --------------------------------------------------------------------- */
 
 // Button & Debounce Timing
 const unsigned long longPressLength = 3000;
