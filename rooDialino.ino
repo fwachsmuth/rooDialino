@@ -196,8 +196,8 @@ void setup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   for (int thisLed = 0; thisLed < ledPinCount; thisLed++) pinMode(ledPins[thisLed], OUTPUT);
 
-  attachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN), volDownISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(VOL_UP_PIN), volUpISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN), volDownISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(VOL_UP_PIN), volUpISR, RISING);
 
   Serial.begin(115200);
   // Just to know which program is running on my Arduino
