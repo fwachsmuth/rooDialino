@@ -254,12 +254,14 @@ void loop() {
 
   switch (myState) {        // check if relaying was turned on or off via IR
     case RELAY_SIGNAL_ON:   // but only check when not in a LEARN mode.
-      if (checkIRToggle())
+      if (checkIRToggle()) {
         transitionTo_RELAY_SIGNAL_OFF();
+      }
       break;
     case RELAY_SIGNAL_OFF:
-      if (checkIRToggle())
+      if (checkIRToggle()) {
         transitionTo_RELAY_SIGNAL_ON();
+      }
       break;
     default:
       break;
@@ -329,6 +331,7 @@ void loop() {
 
 void transitionTo_RELAY_SIGNAL_ON() {
   // Todo: Read codes from EEEPROM
+
   // enable ISRs
   attachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN), volDownISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(VOL_UP_PIN), volUpISR, CHANGE);
