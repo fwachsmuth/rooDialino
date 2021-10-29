@@ -58,8 +58,12 @@
 #include <IRremote.h> // Using library version 3.3.0
 #include <EEPROM.h>
 
-#define DEBUG true          // Set to false to avoid Serial.printlns
-#define DELAY_AFTER_SEND  5  // shorter than 5 ms might make dirty signal
+#define Debugln(a) (Serial.println(a)) 
+#define Debug(a) (Serial.print(a)) 
+// #define Debugln(a)   // Declare the above Macros empty to turn off serial debug output
+// #define Debug(a)
+
+#define DELAY_AFTER_SEND 5 // shorter than 5 ms might make dirty signal
 
 // Pin Naming
 
@@ -187,10 +191,8 @@ void volUpISR() {
   volSteps++;
 }
 
-
+/* ---------------- Setup begins --------------------------------------------------------------------- */
 void setup() {
-  //  buttonState = BUTTON_IDLE;
-
   pinMode(VOL_DOWN_PIN, INPUT_PULLUP);
   pinMode(VOL_UP_PIN, INPUT_PULLUP);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -201,17 +203,13 @@ void setup() {
 
   Serial.begin(115200);
   // Just to know which program is running on my Arduino
-#ifdef DEBUG
-  Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
-#endif
+  Debugln(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
   IrSender.begin(IR_SEND_PIN, ENABLE_LED_FEEDBACK); // Specify send pin and enable feedback LED at default feedback LED pin
   IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK, LED_VOL_UP); // Start the receiver, enable custom feedback LED
   FeedbackLEDControl.FeedbackLEDPin = LED_NONE;  // overwrite feedback LED as needed
 
-#ifdef DEBUG
-      Serial.print(F("Ready to send IR signals at pin "));
-  Serial.println(IR_SEND_PIN);
-#endif
+  Debug(F("Ready to send IR signals at pin "));
+  Debugln(IR_SEND_PIN);
 
 #if defined(USE_SOFT_SEND_PWM) && !defined(ESP32) // for esp32 we use PWM generation by hw_timer_t for each pin
   /*
@@ -219,15 +217,13 @@ void setup() {
   */
   IrSender.enableIROut(38);
 
-#ifdef DEBUG
-  Serial.print(F("Send signal mark duration is "));
-  Serial.print(IrSender.periodOnTimeMicros);
-  Serial.print(F(" us, pulse correction is "));
-  Serial.print((uint16_t) PULSE_CORRECTION_NANOS);
-  Serial.print(F(" ns, total period is "));
-  Serial.print(IrSender.periodTimeMicros);
-  Serial.println(F(" us"));
-#endif
+  Debug(F("Send signal mark duration is "));
+  Debug(IrSender.periodOnTimeMicros);
+  Debug(F(" us, pulse correction is "));
+  Debug((uint16_t) PULSE_CORRECTION_NANOS);
+  Debug(F(" ns, total period is "));
+  Debug(IrSender.periodTimeMicros);
+  Debugln(F(" us"));
 #endif
 
   if (!readLearnedIRCodesFromEEPROM()) {
@@ -236,14 +232,13 @@ void setup() {
 
 }
 
-
-void loop() {
+/* ---------------- Loop begins --------------------------------------------------------------------- */
+void loop()
+{
   // Debug Code below
   if (myState != prevState) {
-#ifdef DEBUG
-    Serial.print("Mode: ");
-    Serial.println(myState);
-#endif
+    Debug("Mode: ");
+    Debugln(myState);
     prevState = myState;
   }
 
@@ -277,10 +272,8 @@ void loop() {
         {
           FeedbackLEDControl.FeedbackLEDPin = LED_RON;
         }
-#ifdef DEBUG
-        Serial.print(volSteps);
-        Serial.println(" Up");
-#endif
+        Debug(volSteps);
+        Debugln(" Up");
         delay(DELAY_AFTER_SEND);
       }
       if (volSteps < 0) {
@@ -291,10 +284,8 @@ void loop() {
         {
           FeedbackLEDControl.FeedbackLEDPin = LED_RON;
         }
-#ifdef DEBUG
-        Serial.print(volSteps);
-        Serial.println(" Down");
-#endif
+        Debug(volSteps);
+        Debugln(" Down");
         delay(DELAY_AFTER_SEND);      
       }
       // TODO: turn rrecever back on after these ifs... IrReceiver.resume();
@@ -323,15 +314,12 @@ void loop() {
     default:
       break;
   }
-
 }
 
-
-// ****************************************************************************************************************
+/* ---------------- End Loop -------------------------------------------------------------------------- */
 
 void transitionTo_RELAY_SIGNAL_ON() {
   // Todo: Read codes from EEEPROM
-
   // enable ISRs
   attachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN), volDownISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(VOL_UP_PIN), volUpISR, CHANGE);
@@ -367,30 +355,20 @@ bool checkForSerialCommand() {
     char command = Serial.read();
     switch(command) {
       case 'n':
-#ifdef DEBUG
         Serial.println(F("On!"));
-#endif
       break;
       case 'f':
-#ifdef DEBUG
         Serial.println(F("Off!"));
-#endif
-      break;
+        break;
       case 's':
-#ifdef DEBUG
         Serial.println(F("Status"));
-#endif
-      break;
+        break;
       case 'v':
-#ifdef DEBUG
         Serial.println(F("Version!"));
-#endif
-      break;
+        break;
       default:
-#ifdef DEBUG
         Serial.println(F("Kenn ich nicht."));
-#endif
-      break;
+        break;
     }
     return true;
   }
@@ -399,15 +377,11 @@ bool checkForSerialCommand() {
 
 
 void checkButton() { // call in loop(). This calls buttonLongPress() and buttonShortPress().
-
-#ifdef DEBUG
-// Debug Output below. Comment out if not debugging
-    if (buttonState != prevButtonState) {
-      Serial.print("Button: ");
-      Serial.println(buttonStateStr[buttonState]);
-      prevButtonState = buttonState;
-    }
-#endif
+  if (buttonState != prevButtonState) {
+    Debug("Button: ");
+    Debugln(buttonStateStr[buttonState]);
+    prevButtonState = buttonState;
+  }
 
   switch (buttonState) {
     case idle:
@@ -480,9 +454,7 @@ bool saveLearnedIRCodesToEEPROM() {
   for (byte thisCode = 0; thisCode < NUMBER_OF_CODES_STORED; thisCode++) {
     EEPROM.put(eeAddress, IRCodeLearned[thisCode]);
     eeAddress = eeAddress + sizeof(IRCodeLearned[thisCode]);
-#ifdef DEBUG
-    Serial.println(eeAddress);
-#endif
+    Debugln(eeAddress);
   }
 }
 
@@ -496,19 +468,15 @@ bool readLearnedIRCodesFromEEPROM() {
       EEPROM.get(eeAddress, IRCodeLearned[thisCode]);
       IRData thisStruct;
       EEPROM.get(eeAddress, thisStruct);
-#ifdef DEBUG
-      Serial.println(thisStruct.protocol);
-      Serial.println(thisStruct.address);
-      Serial.println(thisStruct.command);
-      Serial.println();
-#endif
+      Debugln(thisStruct.protocol);
+      Debugln(thisStruct.address);
+      Debugln(thisStruct.command);
+      Debugln();
       eeAddress = eeAddress + sizeof(IRCodeLearned[thisCode]);
     }
     return true;
   } else {
-#ifdef DEBUG
-    Serial.println("Virgin EEPROM!");
-#endif
+    Debugln("Virgin EEPROM!");
     return false;
   }
 }
@@ -520,17 +488,13 @@ bool learnIRCode(byte IRStructArrayIndex) {
         if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received
         received = true;
   
-#ifdef DEBUG
-        Serial.print("Storing code at index ");
-        Serial.println(IRStructArrayIndex);
-#endif
+        Debug("Storing code at index ");
+        Debugln(IRStructArrayIndex);
         IRCodeLearned[IRStructArrayIndex] = *IrReceiver.read();
         IRCodeLearned[IRStructArrayIndex].flags = 0; // clear any flags -esp. repeat- for later sending
       
-#ifdef DEBUG
         IrReceiver.printIRResultShort(&Serial);
-        Serial.println();
-#endif
+        Debugln();
       }
     }
     lastIRreceivedMillis = millis();
@@ -553,10 +517,8 @@ void sendIRCode(byte IRcommand) {
   IRSendData.flags = IRDATA_FLAGS_EMPTY;
 
   IrSender.write(&IRSendData, NO_REPEATS);
-#ifdef DEBUG
-  Serial.print(F("Sent: "));
+  Debug(F("Sent: "));
   printIRResultShort(&Serial, &IRSendData);
-#endif
 
 }
 
