@@ -395,8 +395,6 @@ bool checkForSerialCommand() {
 }
 
 
-
-
 void checkButton() { // call in loop(). This calls buttonLongPress() and buttonShortPress().
 
 #ifdef DEBUG
@@ -454,11 +452,6 @@ void checkButton() { // call in loop(). This calls buttonLongPress() and buttonS
 bool checkIRToggle() {
   // see if a relay state toggle was requested
   bool received = false;
-
-//if (false /* IrReceiver.decode() == 0xAFFE */) { // should be the correct value, not any value!
-//if (IrReceiver.decodedIRData.protocol == IRCodeLearned[0].protocol) {
-//if (IrReceiver.available()) {
-
   if (IrReceiver.decode()) {
     if (IrReceiver.decodedIRData.protocol == IRCodeLearned[0].protocol &&
         IrReceiver.decodedIRData.address  == IRCodeLearned[0].address  &&
@@ -538,10 +531,7 @@ bool learnIRCode(byte IRStructArrayIndex) {
       }
     }
     lastIRreceivedMillis = millis();
-    IrReceiver.resume(); /* 
-      This still queues signal appearing in subsequent calls. Try approach from Siluino:L474.
-      Or, like in the ReceiveAndSend Example, check IrReceiver.available() and then do a IrReceiver.read() instead of the .decode.
-    */                         
+    IrReceiver.resume();       
   }
   return received;
 }
