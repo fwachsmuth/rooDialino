@@ -63,6 +63,8 @@
 // #define Debugln(a)   // Declare the above Macros empty to turn off serial debug output
 // #define Debug(a)
 
+const char versionNo[] = "1.0.0";
+
 #define DELAY_AFTER_SEND 5 // shorter than 5 ms might make dirty signal
 
 // Pin Naming
@@ -297,17 +299,21 @@ void loop()
       break;
     case LEARN_IR_RELAY_TOGGLE:
       if (learnIRCode(IR_RELAY_TOGGLE)) {
+        Serial.println(F("toggle_learned"));
         transitionTo_LEARN_IR_VOL_UP();
       }
       break;
     case LEARN_IR_VOL_UP:
       if (learnIRCode(IR_VOL_UP)) {
+        Serial.println(F("voldown_learned"));
         transitionTo_LEARN_IR_VOL_DOWN();
       }
       break;
     case LEARN_IR_VOL_DOWN:
       if (learnIRCode(IR_VOL_DOWN)) {
         saveLearnedIRCodesToEEPROM();
+        Serial.println(F("volup_learned"));
+        Serial.println(F("learning_complete"));
         transitionTo_RELAY_SIGNAL_ON();
       }
       break;
@@ -355,20 +361,28 @@ bool checkForSerialCommand() {
   if (Serial.available()) {
     char command = Serial.read();
     switch(command) {
-      case 'n':
-        Serial.println(F("On!"));
-      break;
-      case 'f':
-        Serial.println(F("Off!"));
+      case 'n': // Turn Relay On
+        transitionTo_RELAY_SIGNAL_ON();
+        Serial.println(F("okay"));
         break;
-      case 's':
+      case 'f': // Turn Relay Off
+        transitionTo_RELAY_SIGNAL_OFF();
+        Serial.println(F("okay"));
+        break;
+      case 's': // Status
         Serial.println(F("Status"));
         break;
-      case 'v':
-        Serial.println(F("Version!"));
+      case 'v': // Version
+        Serial.println(versionNo);
+        break;
+      case 'l': // Start Learning Essential Codes
+        transitionTo_LEARN_IR_RELAY_TOGGLE();
+        break;
+      case 'L': // Start Learning Codes for Explicit Relay Control
+        break;
+      case 'x': // Exit Code Learning now
         break;
       default:
-        Serial.println(F("Kenn ich nicht."));
         break;
     }
     return true;
