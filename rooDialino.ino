@@ -124,7 +124,7 @@ const char* buttonStateStr[] = {"Idle", "Down", "Debounce Down", "Held", "Up", "
 #define LEARN_IR_VOL_UP       53
 #define LEARN_IR_VOL_DOWN     54
 #define LEARN_IR_RELAY_ON     55
-#define LEARN_IR_RELAY_OF     56
+#define LEARN_IR_RELAY_OFF    56
 
 // Array indices for our IR code structs. Todo: Convert to enum.
 #define IR_RELAY_TOGGLE 0
@@ -146,18 +146,18 @@ void sendIRCode(IRData *aIRDataToSend);
 
 const byte ledPins[] = { LED_RSTATE, LED_VOL_DOWN, LED_VOL_UP, LED_RON, LED_ROFF, LED_NONE} ;   // an array of pin numbers to which LEDs are attached
 const byte ledPinCount = 5;   // LED_NONE is not connected
-LedMode ledMode[] = { on, off, off, off, off };           // array of enum'd LED states. Turn them off.
+LedMode ledMode[] = { on, off, off, off, off };           // array of enum'd LED states
 
 unsigned long fastblinkPrevMillis[] = { 0, 0, 0, 0, 0 } ; // will store last time LED was updated
 unsigned long blinkPrevMillis[] = { 0, 0, 0, 0, 0 };      // will store last time LED was updated
 unsigned long currentMillis = 0;
-bool ledBlinkState[] = { LOW, LOW, LOW, LOW, LOW };             // ledState Array used to toggle them for blinking
+bool ledBlinkState[] = { LOW, LOW, LOW, LOW, LOW };       // ledState Array used to toggle them for blinking
 
-const unsigned int ledSlowBlinkInterval = 200;
+const unsigned int ledSlowBlinkInterval = 200;            // ms
 const unsigned int ledFastBlinkInterval = 80;
 
 byte ledBurstPatternCell = 0;
-byte prevLedBurstPatternCell[] = { 0, 0, 0, 0 };
+byte prevLedBurstPatternCell[] = { 0, 0, 0, 0, 0 };
 
 /* ---------------- Button Things --------------------------------------------------------------------- */
 
@@ -191,6 +191,7 @@ void volUpISR() {
 }
 
 /* ---------------- Setup begins --------------------------------------------------------------------- */
+
 void setup() {
   pinMode(VOL_DOWN_PIN, INPUT_PULLUP);
   pinMode(VOL_UP_PIN, INPUT_PULLUP);
@@ -232,6 +233,7 @@ void setup() {
 }
 
 /* ---------------- Loop begins --------------------------------------------------------------------- */
+
 void loop()
 {
   // Debug Code below
@@ -321,37 +323,53 @@ void loop()
 
 /* ---------------- End Loop -------------------------------------------------------------------------- */
 
-void transitionTo_RELAY_SIGNAL_ON() {
+void transitionTo_RELAY_SIGNAL_ON() 
+{
   // Todo: Read codes from EEEPROM
   // enable ISRs
   attachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN), volDownISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(VOL_UP_PIN), volUpISR, CHANGE);
-  setLedModes(on, off, off);
+  setLedModes(on, off, off, off, off);
   myState = RELAY_SIGNAL_ON;
 }
 
-void transitionTo_RELAY_SIGNAL_OFF() {
+void transitionTo_RELAY_SIGNAL_OFF() 
+{
   // disable ISRs
   volSteps = 0;
   detachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN));
   detachInterrupt(digitalPinToInterrupt(VOL_UP_PIN));
-  setLedModes(off, off, off);
+  setLedModes(off, off, off, off, off);
   myState = RELAY_SIGNAL_OFF;
 }
 
-void transitionTo_LEARN_IR_RELAY_TOGGLE() {
-  setLedModes(fastBlink, off, off);
+void transitionTo_LEARN_IR_RELAY_TOGGLE() 
+{
+  setLedModes(fastBlink, off, off, off, off);
   myState = LEARN_IR_RELAY_TOGGLE;
 }
 
-void transitionTo_LEARN_IR_VOL_UP() {
-  setLedModes(off, fastBlink, off);
+void transitionTo_LEARN_IR_VOL_UP() 
+{
+  setLedModes(off, fastBlink, off, off, off);
   myState = LEARN_IR_VOL_UP;
 }
 
 void transitionTo_LEARN_IR_VOL_DOWN() {
-  setLedModes(off, off, fastBlink);
+  setLedModes(off, off, fastBlink, off, off);
   myState = LEARN_IR_VOL_DOWN;
+}
+
+void transitionTo_LEARN_IR_RELAY_ON()
+{
+  setLedModes(off, off, off, fastBlink, off);
+  myState = LEARN_IR_RELAY_ON;
+}
+
+void transitionTo_LEARN_IR_RELAY_OFF()
+{
+  setLedModes(off, off, off, off, fastBlink);
+  myState = LEARN_IR_RELAY_OFF;
 }
 
 bool checkForSerialCommand() {
@@ -496,16 +514,17 @@ bool readLearnedIRCodesFromEEPROM() {
 bool learnIRCode(byte IRStructArrayIndex) {
   bool received = false;
     if (IrReceiver.decode()) { 
-      if (IrReceiver.decodedIRData.protocol != UNKNOWN) { // Too much Noise from e.g. LED bulbs around to allow Raw signal recording
-        if (millis() - lastIRreceivedMillis > 250) {  // If it's been at least 1/4 second since the last IR received
+      if (IrReceiver.decodedIRData.protocol != UNKNOWN) {  // Too much Noise from e.g. LED bulbs around to allow Raw signal recording
+        if (millis() - lastIRreceivedMillis > 250) {       // If it's been at least 1/4 second since the last IR received
         received = true;
   
         Debug("Storing code at index ");
         Debugln(IRStructArrayIndex);
         IRCodeLearned[IRStructArrayIndex] = *IrReceiver.read();
         IRCodeLearned[IRStructArrayIndex].flags = 0; // clear any flags -esp. repeat- for later sending
-      
+#ifdef Debug
         IrReceiver.printIRResultShort(&Serial);
+#endif
         Debugln();
       }
     }
@@ -533,7 +552,6 @@ void sendIRCode(byte IRcommand) {
   printIRResultShort(&Serial, &IRSendData);
 
 }
-
 
 void buttonShortPress() {
   switch (myState) {
@@ -578,7 +596,8 @@ void buttonLongPress() {
   }
 }
 
-void updateLeds() { // call in loop() to update the connected LEDs as set in ledMode[]
+void updateLeds() // call in loop() to update the connected LEDs as set in ledMode[]
+{ 
   for (byte thisLed = 0; thisLed < ledPinCount; thisLed++) {
     switch (ledMode[thisLed]) {
       case off:
@@ -632,15 +651,57 @@ void updateLeds() { // call in loop() to update the connected LEDs as set in led
           }
         }
         break;
+      case quadruple:
+        ledBurstPatternCell = (currentMillis / 50 % 20);
+        if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
+        {
+          prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
+          switch (ledBurstPatternCell)
+          {
+          case 0:
+          case 4:
+          case 8:
+          case 12:
+            digitalWrite(ledPins[thisLed], HIGH);
+            break;
+          default:
+            digitalWrite(ledPins[thisLed], LOW);
+            break;
+          }
+        }
+        break;
+      case quintuple:
+        ledBurstPatternCell = (currentMillis / 50 % 20);
+        if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
+        {
+          prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
+          switch (ledBurstPatternCell)
+          {
+          case 0:
+          case 4:
+          case 8:
+          case 12:
+          case 16:
+            digitalWrite(ledPins[thisLed], HIGH);
+            break;
+          default:
+            digitalWrite(ledPins[thisLed], LOW);
+            break;
+          }
+        }
+        break;
       default:
         break;
     }
   }
 }
 
+void setLedModes(LedMode newSettingsLedMode, LedMode newVolDownLedMode, LedMode newRoffLedMode, LedMode newRonLedMode, LedMode newVolUpLedMode)
 // writes individual set LED modes to a the LED mode array
-void setLedModes(LedMode newSettingsLedMode, LedMode newVolDownLedMode, LedMode newVolUpLedMode) {
+{ 
   ledMode[0] = newSettingsLedMode;
   ledMode[1] = newVolDownLedMode;
   ledMode[2] = newVolUpLedMode;
+  ledMode[3] = newRoffLedMode;
+  ledMode[4] = newRonLedMode;
 }
