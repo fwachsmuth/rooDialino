@@ -103,6 +103,7 @@ enum LedMode
   quintuple, /* Preparing for more blink states */
 };
 const char *LedModeStr[] = {"Off", "On", "Fast Blink", "Blink", "Once", "Twice", "Thrice", "Quadruple", "Quintuple"};
+byte prevLedMode;
 
 // Button States. This is for software debounce.
 enum ButtonState
@@ -358,7 +359,7 @@ void transitionTo_RELAY_SIGNAL_OFF()
 
 void transitionTo_LEARN_IR_RELAY_TOGGLE()
 {
-  setLedModes(thrice, off, off, off, off);
+  setLedModes(fastBlink, off, off, off, off);
   myState = LEARN_IR_RELAY_TOGGLE;
 }
 
@@ -768,7 +769,7 @@ void updateLeds() // call in loop() to update the connected LEDs as set in ledMo
   }
 }
 
-void setLedModes(LedMode newSettingsLedMode, LedMode newVolDownLedMode, LedMode newRoffLedMode, LedMode newRonLedMode, LedMode newVolUpLedMode)
+void setLedModes(LedMode newSettingsLedMode, LedMode newVolDownLedMode, LedMode newVolUpLedMode, LedMode newRoffLedMode, LedMode newRonLedMode)
 // writes individual set LED modes to a the LED mode array
 {
   ledMode[0] = newSettingsLedMode;
