@@ -97,7 +97,7 @@ enum LedMode : byte
   on,
   fastBlink,
   slowBlink,
-  once = 0x11,
+  once = 0x11, // this offset allows chosing subsequent blink modes via incrementing an index
   twice,
   thrice,
   quadruple,
@@ -105,7 +105,7 @@ enum LedMode : byte
 };
 const char *ledModeStr[] = {"Off", "On", "Fast Blink", "Slow Blink"};
 
-// Button States. This is for software debounce.
+/// Button States. This is for software debounce.
 enum ButtonState
 {
   idle = 0,
@@ -116,9 +116,9 @@ enum ButtonState
   debounceUp,
   longPress,
 };
-const char *buttonStateStr[] = {"Idle", "Down", "Debounce Down", "Held", "Up", "Debounce Up", "Longpress"};
+const char *buttonStateStr[] = { "Idle", "Down", "Debounce Down", "Held", "Up", "Debounce Up", "Longpress" };
 
-/// States (rooDialino).
+/// States (rooDialino)
 enum State
 {
   relaySignalOn = 0,
@@ -130,8 +130,8 @@ enum State
   learnIRRelayOff,
 };
 const char *stateStr[] = {
-    "Relay Signal On", "Relay Signal Off", "Learn IR Relay Toggle", "Learn IR Vol Up",
-    "Learn IR Vol Down", "Learn IR Relay On", "Learn IR Relay Off"};
+    "Relay IR-Signal: On", "Relay IR-Signal: Off", "Learn-IR Code: Toggle Relay State", "Learn IR-Code: Vol Up",
+    "Learn IR-Code: Vol Down", "Learn IR-Code: Relay expl. On", "Learn IR-Code: Relay expl. Off" };
 
 // Array indices for our IR code structs. Todo: Convert to enum.
 #define IR_RELAY_TOGGLE 0
@@ -179,7 +179,8 @@ byte prevState;
 byte prevButtonState;
 byte learnState;
 
-// ISRs
+/* ---------------- ISRs ----------------------------------------------------------------------------- */
+
 void volDownISR()
 {
   volSteps--;
@@ -247,7 +248,7 @@ void loop()
 
   currentMillis = millis(); // needed for async (non-blocking) blinking amd button debouncing
   updateLeds();
-  checkButton(); // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state.
+  checkButton();      // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state.
   checkForSerialCommand();
 
   switch (myState)
@@ -356,13 +357,13 @@ void transitionTo_relaySignalOff()
 
 void transitionTo_learnIRRelayToggle()
 {
-  setLedModes(slowBlink, off, off, off, off);
+  setLedModes(quintuple, off, off, off, off);
   myState = learnIRRelayToggle;
 }
 
 void transitionTo_learnIRVolUp()
 {
-  setLedModes(off, twice, off, off, off);
+  setLedModes(off, fastBlink, off, off, off);
   myState = learnIRVolUp;
 }
 
@@ -374,13 +375,13 @@ void transitionTo_learnIRVolDown()
 
 void transitionTo_learnIRRelayOn()
 {
-  setLedModes(off, off, off, quadruple, off);
+  setLedModes(off, off, off, fastBlink, off);
   myState = learnIRRelayOn;
 }
 
 void transitionTo_learnIRRelayOff()
 {
-  setLedModes(off, off, off, off, quintuple);
+  setLedModes(off, off, off, off, fastBlink);
   myState = learnIRRelayOff;
 }
 
@@ -577,9 +578,7 @@ bool learnIRCode(byte IRStructArrayIndex)
 
 void sendIRCode(byte IRcommand)
 {
-  /*
-   *  Check SendDemo for more verbose documentation on the write function
-   */
+  // Check SendDemo for more verbose documentation on the write function
   // Use the write function, which does the switch for different protocols. It's missing in the docs though. :/
 
   IRData IRSendData;
@@ -659,12 +658,12 @@ void updateLeds()
     }
     else if (mode == fastBlink)
     {
-      bool lit = (currentMillis & 0x80) == 0;
+      bool lit = (currentMillis & 0b10000000 /* or 0x80 */) == 0;   // 0x80 = 128ms via Bitmask
       digitalWrite(pin, lit ? HIGH : LOW);
     }
     else if (mode == slowBlink)
     {
-      bool lit = (currentMillis & 0x200) == 0;
+      bool lit = (currentMillis & 0x200) == 0;  // 0x200 = every 512ms via Bitmask
       digitalWrite(pin, lit ? HIGH : LOW);
     }
     else if ((currentMillis & 0xC0) == 0)
