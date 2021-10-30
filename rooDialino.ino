@@ -124,8 +124,8 @@ enum State
   relaySignalOn = 0,
   relaySignalOff,
   learnIRRelayToggle,
-  learnIRVolUp,
   learnIRVolDown,
+  learnIRVolUp,
   learnIRRelayOn,
   learnIRRelayOff,
 };
@@ -358,7 +358,7 @@ void transitionTo_relaySignalOff()
 
 void transitionTo_learnIRRelayToggle()
 {
-  setLedModes(quintuple, off, off, off, off);
+  setLedModes(fastBlink, off, off, off, off);
   myState = learnIRRelayToggle;
 }
 
@@ -370,7 +370,7 @@ void transitionTo_learnIRVolUp()
 
 void transitionTo_learnIRVolDown()
 {
-  setLedModes(off, off, thrice, off, off);
+  setLedModes(off, off, fastBlink, off, off);
   myState = learnIRVolDown;
 }
 
