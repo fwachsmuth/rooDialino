@@ -58,7 +58,7 @@
 #include <Arduino.h>
 #include "PinDefinitionsAndMore.h"
 #include <IRremote.h> // Using library version 3.3.0
-#include <EEPROM.h>   // to stroe learned codes
+#include <EEPROM.h>   // to store learned codes
 
 #define Debugln(a) (Serial.println(a))
 #define Debug(a) (Serial.print(a))
@@ -96,13 +96,13 @@ enum LedMode : byte
   on,
   fastBlink,
   slowBlink,
-  once,
+  once = 0x11,
   twice,
   thrice,
   quadruple,
   quintuple,
 };
-//const char *LedModeStr[] = {"Off", "On", "Fast Blink", "Slow Blink", "Once", "Twice", "Thrice", "Quadruple", "Quintuple"};
+const char *ledModeStr[] = {"Off", "On", "Fast Blink", "Slow Blink"};
 
 // Button States. This is for software debounce.
 enum ButtonState
@@ -148,21 +148,7 @@ const byte ledPins[] = {LED_RSTATE, LED_VOL_DOWN, LED_VOL_UP, LED_ROFF, LED_RON,
 const byte ledPinCount = 5;                                                                 // LED_NONE is not connected
 LedMode ledMode[] = {on, off, off, off, off};                                               // array of enum'd LED states
 
-//unsigned long fastblinkPrevMillis[] = {0, 0, 0, 0, 0}; // will store last time LED was updated
-//unsigned long blinkPrevMillis[] = {0, 0, 0, 0, 0};     // will store last time LED was updated
 unsigned long currentMillis = 0;
-//bool ledBlinkState[] = {LOW, LOW, LOW, LOW, LOW}; // ledState Array used to toggle them for blinking
-
-//const unsigned int ledSlowBlinkInterval = 200; // ms
-//const unsigned int ledFastBlinkInterval = 80;
-
-//byte ledBurstPatternCell = 0;
-//byte prevLedBurstPatternCell[] = {0, 0, 0, 0, 0};
-
-struct LED
-{
-  LedMode mode;
-};
 
 /* ---------------- Button Things --------------------------------------------------------------------- */
 
@@ -363,31 +349,31 @@ void transitionTo_RELAY_SIGNAL_OFF()
 
 void transitionTo_LEARN_IR_RELAY_TOGGLE()
 {
-  setLedModes(fastBlink, off, off, off, off);
+  setLedModes(slowBlink, off, off, off, off);
   myState = LEARN_IR_RELAY_TOGGLE;
 }
 
 void transitionTo_LEARN_IR_VOL_UP()
 {
-  setLedModes(off, fastBlink, off, off, off);
+  setLedModes(off, twice, off, off, off);
   myState = LEARN_IR_VOL_UP;
 }
 
 void transitionTo_LEARN_IR_VOL_DOWN()
 {
-  setLedModes(off, off, fastBlink, off, off);
+  setLedModes(off, off, thrice, off, off);
   myState = LEARN_IR_VOL_DOWN;
 }
 
 void transitionTo_LEARN_IR_RELAY_ON()
 {
-  setLedModes(off, off, off, fastBlink, off);
+  setLedModes(off, off, off, quadruple, off);
   myState = LEARN_IR_RELAY_ON;
 }
 
 void transitionTo_LEARN_IR_RELAY_OFF()
 {
-  setLedModes(off, off, off, off, fastBlink);
+  setLedModes(off, off, off, off, quintuple);
   myState = LEARN_IR_RELAY_OFF;
 }
 
@@ -653,175 +639,60 @@ void updateLeds()
 {
   for (byte currentLed = 0; currentLed < ledPinCount; currentLed++)
   {
-    LedMode mode = ledMode[currentLed];
-    // Debugln(mode);
+    auto mode = ledMode[currentLed];
     byte pin = ledPins[currentLed];
 
-    switch (mode)
+    if (mode == off)
     {
-    case off:
       digitalWrite(pin, LOW);
-      break;
-    case on:
+    }
+    else if (mode == on)
+    {
       digitalWrite(pin, HIGH);
-      break;
-    case slowBlink:
-      bool lit = currentMillis & 0x200 == 0;
+    }
+    else if (mode == fastBlink)
+    {
+      bool lit = (currentMillis & 0x80) == 0;
       digitalWrite(pin, lit ? HIGH : LOW);
-      break;
-    case fastBlink:
-      Serial.print("Fastblink");
-      lit = currentMillis & 0x80 == 0;
+    }
+    else if (mode == slowBlink)
+    {
+      bool lit = (currentMillis & 0x200) == 0;
       digitalWrite(pin, lit ? HIGH : LOW);
-      break;
-
-    default:
-      if (currentMillis & 0xC0 == 0)
-      {
-        byte blinkCount = mode & 0x07;
-        lit = (currentMillis & 0x700) >> 8 <= blinkCount;
-        digitalWrite(pin, lit ? HIGH : LOW);
-      }
-      else
-      {
-        digitalWrite(pin, LOW);
-      }
-      break;
+    }
+    else if ((currentMillis & 0xC0) == 0)
+    {
+      byte blinkCount = mode & 0x07;
+      bool lit = ((currentMillis & 0x700) >> 8) < blinkCount;
+      digitalWrite(pin, lit ? HIGH : LOW);
+    }
+    else
+    {
+      digitalWrite(pin, LOW);
     }
   }
 }
 
-/* void oldUpdateLeds() // call in loop() to update the connected LEDs as set in ledMode[]
+void printLedMode(LedMode mode)
 {
-  for (byte thisLed = 0; thisLed < ledPinCount; thisLed++)
+  Debug("LED Mode: ");
+  if (mode > 0x10)
   {
-    switch (ledMode[thisLed])
-    {
-    case off:
-      digitalWrite(ledPins[thisLed], LOW);
-      break;
-    case on:
-      digitalWrite(ledPins[thisLed], HIGH);
-      break;
-    case fastBlink:
-      if (currentMillis - fastblinkPrevMillis[thisLed] >= ledFastBlinkInterval)
-      {
-        digitalWrite(ledPins[thisLed], ledBlinkState[thisLed] = !ledBlinkState[thisLed]);
-        fastblinkPrevMillis[thisLed] = currentMillis;
-      }
-      break;
-    case slowBlink:
-      if (currentMillis - blinkPrevMillis[thisLed] >= ledSlowBlinkInterval)
-      {
-        digitalWrite(ledPins[thisLed], ledBlinkState[thisLed] = !ledBlinkState[thisLed]);
-        blinkPrevMillis[thisLed] = currentMillis;
-      }
-      break;
-    //
-    // The following three burst modes might become useful if we'll need to allow setting a multiplier. Otherwise
-    // they are Siluino legacy.
-    case once:
-      ledBurstPatternCell = (currentMillis / 50 % 20);
-      if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
-      {
-        prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
-        switch (ledBurstPatternCell)
-        {
-        case 0:
-          digitalWrite(ledPins[thisLed], HIGH);
-          break;
-        default:
-          digitalWrite(ledPins[thisLed], LOW);
-          break;
-        }
-      }
-      break;
-    case twice:
-      ledBurstPatternCell = (currentMillis / 50 % 20);
-      if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
-      {
-        prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
-        switch (ledBurstPatternCell)
-        {
-        case 0:
-        case 4:
-          digitalWrite(ledPins[thisLed], HIGH);
-          break;
-        default:
-          digitalWrite(ledPins[thisLed], LOW);
-          break;
-        }
-      }
-      break;
-    case thrice:
-      ledBurstPatternCell = (currentMillis / 50 % 20);
-      if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
-      {
-        prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
-        switch (ledBurstPatternCell)
-        {
-        case 0:
-        case 4:
-        case 8:
-          digitalWrite(ledPins[thisLed], HIGH);
-          break;
-        default:
-          digitalWrite(ledPins[thisLed], LOW);
-          break;
-        }
-      }
-      break;
-    case quadruple:
-      ledBurstPatternCell = (currentMillis / 50 % 20);
-      if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
-      {
-        prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
-        switch (ledBurstPatternCell)
-        {
-        case 0:
-        case 4:
-        case 8:
-        case 12:
-          digitalWrite(ledPins[thisLed], HIGH);
-          break;
-        default:
-          digitalWrite(ledPins[thisLed], LOW);
-          break;
-        }
-      }
-      break;
-    case quintuple:
-      ledBurstPatternCell = (currentMillis / 50 % 20);
-      if (ledBurstPatternCell != prevLedBurstPatternCell[thisLed])
-      {
-        prevLedBurstPatternCell[thisLed] = ledBurstPatternCell;
-        switch (ledBurstPatternCell)
-        {
-        case 0:
-        case 4:
-        case 8:
-        case 12:
-        case 16:
-          digitalWrite(ledPins[thisLed], HIGH);
-          break;
-        default:
-          digitalWrite(ledPins[thisLed], LOW);
-          break;
-        }
-      }
-      break;
-    default:
-      break;
-    }
+    Debug("Blink x");
+    Debugln(mode & 0x07);
   }
-}*/
+  else
+  {
+    Debugln(ledModeStr[mode]);
+  }
+}
 
 /// writes individually set LED modes to a the LED mode array
-void setLedModes(LedMode newSettingsLedMode, LedMode newVolDownLedMode, LedMode newVolUpLedMode, LedMode newRoffLedMode, LedMode newRonLedMode)
+void setLedModes(LedMode newSettingsMode, LedMode newVolDownMode, LedMode newVolUpMode, LedMode newRoffMode, LedMode newRonMode)
 {
-  ledMode[0] = newSettingsLedMode;
-  ledMode[1] = newVolDownLedMode;
-  ledMode[2] = newVolUpLedMode;
-  ledMode[3] = newRoffLedMode;
-  ledMode[4] = newRonLedMode;
+  ledMode[0] = newSettingsMode;
+  ledMode[1] = newVolDownMode;
+  ledMode[2] = newVolUpMode;
+  ledMode[3] = newRoffMode;
+  ledMode[4] = newRonMode;
 }
