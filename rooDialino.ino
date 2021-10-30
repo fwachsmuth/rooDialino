@@ -144,7 +144,7 @@ void sendIRCode(IRData *aIRDataToSend);
 
 /* ---------------- LED Things ------------------------------------------------------------------------ */
 
-const byte ledPins[] = {LED_RSTATE, LED_VOL_DOWN, LED_VOL_UP, LED_RON, LED_ROFF, LED_NONE}; // an array of pin numbers to which LEDs are attached
+const byte ledPins[] = {LED_RSTATE, LED_VOL_DOWN, LED_VOL_UP, LED_ROFF, LED_RON, LED_NONE}; // an array of pin numbers to which LEDs are attached
 const byte ledPinCount = 5;                                                                 // LED_NONE is not connected
 LedMode ledMode[] = {on, off, off, off, off};                                               // array of enum'd LED states
 
@@ -654,6 +654,7 @@ void updateLeds()
   for (byte currentLed = 0; currentLed < ledPinCount; currentLed++)
   {
     LedMode mode = ledMode[currentLed];
+    // Debugln(mode);
     byte pin = ledPins[currentLed];
 
     switch (mode)
@@ -662,7 +663,6 @@ void updateLeds()
       digitalWrite(pin, LOW);
       break;
     case on:
-      Serial.print("x");
       digitalWrite(pin, HIGH);
       break;
     case slowBlink:
@@ -670,6 +670,7 @@ void updateLeds()
       digitalWrite(pin, lit ? HIGH : LOW);
       break;
     case fastBlink:
+      Serial.print("Fastblink");
       lit = currentMillis & 0x80 == 0;
       digitalWrite(pin, lit ? HIGH : LOW);
       break;
@@ -816,7 +817,7 @@ void updateLeds()
 }*/
 
 /// writes individually set LED modes to a the LED mode array
-void setLedModes(LedMode newSettingsLedMode, LedMode newVolDownLedMode, LedMode newRoffLedMode, LedMode newRonLedMode, LedMode newVolUpLedMode)
+void setLedModes(LedMode newSettingsLedMode, LedMode newVolDownLedMode, LedMode newVolUpLedMode, LedMode newRoffLedMode, LedMode newRonLedMode)
 {
   ledMode[0] = newSettingsLedMode;
   ledMode[1] = newVolDownLedMode;
