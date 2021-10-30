@@ -116,7 +116,7 @@ enum ButtonState
   debounceUp,
   longPress,
 };
-const char *buttonStateStr[] = { "Idle", "Down", "Debounce Down", "Held", "Up", "Debounce Up", "Longpress" };
+const char *buttonStateStr[] = {"Idle", "Down", "Debounce Down", "Held", "Up", "Debounce Up", "Longpress"};
 
 /// States (rooDialino)
 enum State
@@ -131,7 +131,7 @@ enum State
 };
 const char *stateStr[] = {
     "Relay IR-Signal: On", "Relay IR-Signal: Off", "Learn-IR Code: Toggle Relay State", "Learn IR-Code: Vol Up",
-    "Learn IR-Code: Vol Down", "Learn IR-Code: Relay expl. On", "Learn IR-Code: Relay expl. Off" };
+    "Learn IR-Code: Vol Down", "Learn IR-Code: Relay expl. On", "Learn IR-Code: Relay expl. Off"};
 
 // Array indices for our IR code structs. Todo: Convert to enum.
 #define IR_RELAY_TOGGLE 0
@@ -154,6 +154,7 @@ void sendIRCode(IRData *aIRDataToSend);
 const byte ledPins[] = {LED_RSTATE, LED_VOL_DOWN, LED_VOL_UP, LED_ROFF, LED_RON, LED_NONE}; // an array of pin numbers to which LEDs are attached
 const byte ledPinCount = 5;                                                                 // LED_NONE is not connected
 LedMode ledMode[] = {on, off, off, off, off};                                               // array of enum'd LED states
+LedMode prevLedMode[] = {on, off, off, off, off};
 
 unsigned long currentMillis = 0;
 
@@ -248,7 +249,7 @@ void loop()
 
   currentMillis = millis(); // needed for async (non-blocking) blinking amd button debouncing
   updateLeds();
-  checkButton();      // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state.
+  checkButton(); // This debounces and calls buttonLongPress() and buttonShortPress(). The latter dispatch from state to state.
   checkForSerialCommand();
 
   switch (myState)
@@ -658,24 +659,41 @@ void updateLeds()
     }
     else if (mode == fastBlink)
     {
-      bool lit = (currentMillis & 0b10000000 /* or 0x80 */) == 0;   // 0x80 = 128ms via Bitmask
+      bool lit = (currentMillis & 0b10000000 /* or 0x80 */) == 0; // 0x80 = 128ms via Bitmask
       digitalWrite(pin, lit ? HIGH : LOW);
     }
     else if (mode == slowBlink)
     {
-      bool lit = (currentMillis & 0x200) == 0;  // 0x200 = every 512ms via Bitmask
-      digitalWrite(pin, lit ? HIGH : LOW);
-    }
-    else if ((currentMillis & 0xC0) == 0)
-    {
-      byte blinkCount = mode & 0x07;
-      bool lit = ((currentMillis & 0x700) >> 8) < blinkCount;
+      bool lit = (currentMillis & 0x200) == 0; // 0x200 = every 512ms via Bitmask
       digitalWrite(pin, lit ? HIGH : LOW);
     }
     else
     {
-      digitalWrite(pin, LOW);
+      static int offset = 0;
+      if (mode != prevLedMode[currentLed])
+      {
+        offset = (currentMillis & 0x7FF) + 0x100;
+        digitalWrite(pin, LOW);
+      }
+      else
+      {
+        int offsetMillis = 0;
+        offsetMillis = currentMillis - offset;
+
+        if ((offsetMillis & 0xC0) == 0)
+        {
+          byte blinkCount = mode & 0x07; // ?? once is 0x11
+          bool lit = ((offsetMillis & 0x700) >> 8) < blinkCount;
+          digitalWrite(pin, lit ? HIGH : LOW);
+        }
+        else
+        {
+          digitalWrite(pin, LOW);
+        }
+      }
     }
+
+    prevLedMode[currentLed] = mode;
   }
 }
 
