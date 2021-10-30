@@ -90,19 +90,19 @@ via SPI. */
 
 /* ---------------- Many many States ------------------------------------------------------------------- */
 
-enum LedMode
+enum LedMode : byte
 {          /* for all the states an LED can have */
   off = 0, /* force start at 0 to allow mapping debug strings in a shadow array */
   on,
   fastBlink,
-  blink,
+  slowBlink,
   once,
   twice,
   thrice,
-  quadruple, /* Preparing for more blink states */
-  quintuple, /* Preparing for more blink states */
+  quadruple,
+  quintuple,
 };
-const char *LedModeStr[] = {"Off", "On", "Fast Blink", "Blink", "Once", "Twice", "Thrice", "Quadruple", "Quintuple"};
+//const char *LedModeStr[] = {"Off", "On", "Fast Blink", "Slow Blink", "Once", "Twice", "Thrice", "Quadruple", "Quintuple"};
 
 // Button States. This is for software debounce.
 enum ButtonState
@@ -148,16 +148,21 @@ const byte ledPins[] = {LED_RSTATE, LED_VOL_DOWN, LED_VOL_UP, LED_RON, LED_ROFF,
 const byte ledPinCount = 5;                                                                 // LED_NONE is not connected
 LedMode ledMode[] = {on, off, off, off, off};                                               // array of enum'd LED states
 
-unsigned long fastblinkPrevMillis[] = {0, 0, 0, 0, 0}; // will store last time LED was updated
-unsigned long blinkPrevMillis[] = {0, 0, 0, 0, 0};     // will store last time LED was updated
+//unsigned long fastblinkPrevMillis[] = {0, 0, 0, 0, 0}; // will store last time LED was updated
+//unsigned long blinkPrevMillis[] = {0, 0, 0, 0, 0};     // will store last time LED was updated
 unsigned long currentMillis = 0;
-bool ledBlinkState[] = {LOW, LOW, LOW, LOW, LOW}; // ledState Array used to toggle them for blinking
+//bool ledBlinkState[] = {LOW, LOW, LOW, LOW, LOW}; // ledState Array used to toggle them for blinking
 
-const unsigned int ledSlowBlinkInterval = 200; // ms
-const unsigned int ledFastBlinkInterval = 80;
+//const unsigned int ledSlowBlinkInterval = 200; // ms
+//const unsigned int ledFastBlinkInterval = 80;
 
-byte ledBurstPatternCell = 0;
-byte prevLedBurstPatternCell[] = {0, 0, 0, 0, 0};
+//byte ledBurstPatternCell = 0;
+//byte prevLedBurstPatternCell[] = {0, 0, 0, 0, 0};
+
+struct LED
+{
+  LedMode mode;
+};
 
 /* ---------------- Button Things --------------------------------------------------------------------- */
 
@@ -358,7 +363,7 @@ void transitionTo_RELAY_SIGNAL_OFF()
 
 void transitionTo_LEARN_IR_RELAY_TOGGLE()
 {
-  setLedModes(thrice, off, off, off, off);
+  setLedModes(fastBlink, off, off, off, off);
   myState = LEARN_IR_RELAY_TOGGLE;
 }
 
@@ -424,12 +429,12 @@ bool checkForSerialCommand()
 
 void checkButton()
 { // call in loop(). This calls buttonLongPress() and buttonShortPress().
-  if (buttonState != prevButtonState)
-  {
-    Debug("Button: ");
-    Debugln(buttonStateStr[buttonState]);
-    prevButtonState = buttonState;
-  }
+  // if (buttonState != prevButtonState)
+  // {
+  //   Debug("Button: ");
+  //   Debugln(buttonStateStr[buttonState]);
+  //   prevButtonState = buttonState;
+  // }
 
   switch (buttonState)
   {
@@ -643,7 +648,49 @@ void buttonLongPress()
   }
 }
 
-void updateLeds() // call in loop() to update the connected LEDs as set in ledMode[]
+// call in loop() to update the connected LEDs as set in ledMode[]
+void updateLeds()
+{
+  for (byte currentLed = 0; currentLed < ledPinCount; currentLed++)
+  {
+    LedMode mode = ledMode[currentLed];
+    byte pin = ledPins[currentLed];
+
+    switch (mode)
+    {
+    case off:
+      digitalWrite(pin, LOW);
+      break;
+    case on:
+      Serial.print("x");
+      digitalWrite(pin, HIGH);
+      break;
+    case slowBlink:
+      bool lit = currentMillis & 0x200 == 0;
+      digitalWrite(pin, lit ? HIGH : LOW);
+      break;
+    case fastBlink:
+      lit = currentMillis & 0x80 == 0;
+      digitalWrite(pin, lit ? HIGH : LOW);
+      break;
+
+    default:
+      if (currentMillis & 0xC0 == 0)
+      {
+        byte blinkCount = mode & 0x07;
+        lit = (currentMillis & 0x700) >> 8 <= blinkCount;
+        digitalWrite(pin, lit ? HIGH : LOW);
+      }
+      else
+      {
+        digitalWrite(pin, LOW);
+      }
+      break;
+    }
+  }
+}
+
+/* void oldUpdateLeds() // call in loop() to update the connected LEDs as set in ledMode[]
 {
   for (byte thisLed = 0; thisLed < ledPinCount; thisLed++)
   {
@@ -662,7 +709,7 @@ void updateLeds() // call in loop() to update the connected LEDs as set in ledMo
         fastblinkPrevMillis[thisLed] = currentMillis;
       }
       break;
-    case blink:
+    case slowBlink:
       if (currentMillis - blinkPrevMillis[thisLed] >= ledSlowBlinkInterval)
       {
         digitalWrite(ledPins[thisLed], ledBlinkState[thisLed] = !ledBlinkState[thisLed]);
@@ -766,10 +813,10 @@ void updateLeds() // call in loop() to update the connected LEDs as set in ledMo
       break;
     }
   }
-}
+}*/
 
+/// writes individually set LED modes to a the LED mode array
 void setLedModes(LedMode newSettingsLedMode, LedMode newVolDownLedMode, LedMode newRoffLedMode, LedMode newRonLedMode, LedMode newVolUpLedMode)
-// writes individual set LED modes to a the LED mode array
 {
   ledMode[0] = newSettingsLedMode;
   ledMode[1] = newVolDownLedMode;
