@@ -130,14 +130,16 @@ enum State
   learnIRRelayOff,
 };
 const char *stateStr[] = {
-    "Relay IR-Signal: On", "Relay IR-Signal: Off", "Learn-IR Code: Toggle Relay State", "Learn IR-Code: Vol Up",
-    "Learn IR-Code: Vol Down", "Learn IR-Code: Relay expl. On", "Learn IR-Code: Relay expl. Off"};
+    "Relay IR-Signal: On", "Relay IR-Signal: Off", "Learn-IR Code: Toggle Relay State", "Learn IR-Code: Vol Down",
+    "Learn IR-Code: Vol Up", "Learn IR-Code: Relay expl. On", "Learn IR-Code: Relay expl. Off"};
 
 // Array indices for our IR code structs. Todo: Convert to enum.
 #define IR_RELAY_TOGGLE 0
 #define IR_VOL_UP 1
 #define IR_VOL_DOWN 2
-#define NUMBER_OF_CODES_STORED 3 // array size
+#define IR_RELAY_ON 3
+#define IR_RELAY_OFF 4
+#define NUMBER_OF_CODES_STORED 5 // array size
 
 volatile int16_t volSteps; // keeps track of how many pulses came in from the rooDial
 
@@ -299,33 +301,48 @@ void loop()
       Debugln(" Down");
       delay(DELAY_AFTER_SEND);
     }
-    // TODO: turn rrecever back on after these ifs... IrReceiver.resume();
     break;
   case relaySignalOff:
-    // flash the LEDs to show we are seing pulses (aka rooDial is in reach but relaying is off)
-    // Might combine both cases since we want that same visual feedback while relaying too.
-    // Alternatively, let relay=off just disable the IR Pin... :)
+    /* To indicate that the Dial is in Reach and just the Relay is turned off, we could give some visual
+    Feedback when we receive Dial pulses. Maybe fast blinking instead of "steady" feedback? */
     break;
   case learnIRRelayToggle:
     if (learnIRCode(IR_RELAY_TOGGLE))
     {
       Serial.println(F("toggle_learned"));
-      transitionTo_learnIRVolUp();
-    }
-    break;
-  case learnIRVolUp:
-    if (learnIRCode(IR_VOL_UP))
-    {
-      Serial.println(F("voldown_learned"));
       transitionTo_learnIRVolDown();
     }
     break;
   case learnIRVolDown:
     if (learnIRCode(IR_VOL_DOWN))
     {
-      saveLearnedIRCodesToEEPROM();
-      Serial.println(F("volup_learned"));
-      Serial.println(F("learning_complete"));
+      Serial.println(F("voldown_learned"));
+      transitionTo_learnIRVolUp();
+    }
+    break;
+  case learnIRVolUp:
+    if (learnIRCode(IR_VOL_UP))
+    {
+      saveLearnedIRCodesToEEPROM();           // Move this to the end of the FSM
+      Serial.println(F("volup_learned"));     // Move this to the end of the FSM
+      Serial.println(F("learning_complete")); // Move this to the end of the FSM
+      transitionTo_learnIRRelayOn();
+    }
+    break;
+  case learnIRRelayOn:
+    if (learnIRCode(IR_RELAY_ON))
+    {
+      Serial.println(F("1_on_learned"));
+      transitionTo_learnIRRelayOff();
+    }
+    break;
+  case learnIRRelayOff:
+    if (learnIRCode(IR_RELAY_OFF))
+    {
+      setLedModes(off, off, off, off, off);
+      delay(1000);                  // Dim all LEDs for a moment to confirm completion of the Learn Process
+      saveLearnedIRCodesToEEPROM(); // Todo: Modify this fn to low partial saves
+      Serial.println(F("1_off_learned"));
       transitionTo_relaySignalOn();
     }
     break;
@@ -338,8 +355,9 @@ void loop()
 
 void transitionTo_relaySignalOn()
 {
-  // Todo: Read codes from EEEPROM
-  // enable ISRs
+  /* Todo: Read codes from EEEPROM */
+
+  // enable ISRs:
   attachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN), volDownISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(VOL_UP_PIN), volUpISR, CHANGE);
   setLedModes(on, off, off, off, off);
@@ -348,7 +366,7 @@ void transitionTo_relaySignalOn()
 
 void transitionTo_relaySignalOff()
 {
-  // disable ISRs
+  // disable ISRs:
   volSteps = 0;
   detachInterrupt(digitalPinToInterrupt(VOL_DOWN_PIN));
   detachInterrupt(digitalPinToInterrupt(VOL_UP_PIN));
@@ -362,16 +380,16 @@ void transitionTo_learnIRRelayToggle()
   myState = learnIRRelayToggle;
 }
 
-void transitionTo_learnIRVolUp()
-{
-  setLedModes(off, fastBlink, off, off, off);
-  myState = learnIRVolUp;
-}
-
 void transitionTo_learnIRVolDown()
 {
-  setLedModes(off, off, fastBlink, off, off);
+  setLedModes(off, fastBlink, off, off, off);
   myState = learnIRVolDown;
+}
+
+void transitionTo_learnIRVolUp()
+{
+  setLedModes(off, off, fastBlink, off, off);
+  myState = learnIRVolUp;
 }
 
 void transitionTo_learnIRRelayOn()
@@ -591,7 +609,7 @@ void sendIRCode(byte IRcommand)
 
   IrSender.write(&IRSendData, NO_REPEATS);
   Debug(F("Sent: "));
-  printIRResultShort(&Serial, &IRSendData);
+  // printIRResultShort(&Serial, &IRSendData);
 }
 
 void buttonShortPress()
@@ -607,15 +625,20 @@ void buttonShortPress()
 
   // a short button pres skips the expected config step (to keep the prev. stored setting)
   case learnIRRelayToggle:
-    transitionTo_learnIRVolUp();
-    break;
-  case learnIRVolUp:
     transitionTo_learnIRVolDown();
     break;
   case learnIRVolDown:
+    transitionTo_learnIRVolUp();
+    break;
+  case learnIRVolUp:
+    transitionTo_learnIRRelayOn();
+    break;
+  case learnIRRelayOn:
+    transitionTo_learnIRRelayOff();
+    break;
+  case learnIRRelayOff:
     transitionTo_relaySignalOn();
     break;
-
   default:
     break;
   }
