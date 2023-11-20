@@ -1,7 +1,0 @@
-{
-    "configuration": "cpu=16MHzatmega328",
-    "board": "arduino:avr:pro",
-    "sketch": "rooDialino.ino",
-    "output": "../build",
-    "port": "/dev/cu.usbserial-018AD9BE"
-}
