@@ -1,3 +1,5 @@
 (sym_lib_table
-  (lib (name roodialino-import-rescue)(type Legacy)(uri ${KIPRJMOD}/roodialino-import-rescue.lib)(options "")(descr ""))
+  (version 7)
+  (lib (name "roodialino-import-rescue")(type "Legacy")(uri "${KIPRJMOD}/roodialino-import-rescue.lib")(options "")(descr ""))
+  (lib (name "roodialino-rescue")(type "KiCad")(uri "${KIPRJMOD}/roodialino-rescue.kicad_sym")(options "")(descr ""))
 )
